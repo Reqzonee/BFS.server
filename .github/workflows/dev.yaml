@@ -3,7 +3,7 @@ name: Deploy Node.js Backend via FTP
 on:
     push:
         branches:
-            - main
+            - development
 
 jobs:
     deploy-backend:
@@ -20,7 +20,7 @@ jobs:
                   username: ${{ secrets.FTP_USERNAME }}
                   password: ${{ secrets.FTP_PASSWORD }}
                   local-dir: ./
-                  server-dir: /public_html/
+                  server-dir: /home/demo/public_html/
                   dangerous-clean-slate: false
                   exclude: |
                       **/node_modules/**
