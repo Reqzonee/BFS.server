@@ -89,8 +89,8 @@ router.post(
             });
         }
 
-        // const imageUrl = `http://localhost:8000/uploads/cms/email-template/signature/${req.file.filename}`;
-        const imageUrl = `https://tap.trivediassociates.co.in/uploads/cms/email-template/signature/${req.file.filename}`;
+        // const imageUrl = `http://localhost:${PORT}/uploads/cms/email-template/signature/${req.file.filename}`;
+        const imageUrl = `${process.env.REACT_APP_API_URL}/uploads/cms/email-template/signature/${req.file.filename}`;
 
         return res.status(200).json({
             isOk: true,
