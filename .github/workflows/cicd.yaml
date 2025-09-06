@@ -38,5 +38,5 @@ jobs:
                   key: ${{ secrets.SSH_PRIVATE_KEY }}
                   script: |
                       cd /home/demo/public_html/
-                      whoami > whoami.txt
-                    #   pm2 --help
+                      export PATH=$PATH:/usr/local/bin
+                      pm2 --help
