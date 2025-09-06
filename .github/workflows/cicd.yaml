@@ -38,5 +38,5 @@ jobs:
                   key: ${{ secrets.SSH_PRIVATE_KEY }}
                   script: |
                       cd /home/demo/public_html/
-                      cat whoami >> whoami.txt
+                      whoami > whoami.txt
                     #   pm2 --help
