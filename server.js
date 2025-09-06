@@ -68,17 +68,36 @@ app.use((req, res, next) => {
 app.options("*", cors());
 app.use("/uploads", express.static("uploads"));
 app.use("/log", express.static("log"));
+
 mongoose.set("strictQuery", false);
+mongoose.set("debug", true);
+
+const dbURI = process.env.DATABASE;
+
 mongoose
-    .connect(process.env.DATABASE, { useNewUrlParser: true })
-    .then(() => {
-        databasestatus = "DB connected";
-        console.log("DB connected");
-    })
-    .catch((err) => {
-        databasestatus = err;
-        console.log("DB Error => ", err);
-    });
+  .connect(dbURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,          // Important for proper server selection and TLS
+    serverSelectionTimeoutMS: 10000,   // 10 seconds timeout for initial connection
+  })
+  .then(() => {
+    console.log("✅ DB connected");
+  })
+  .catch((err) => {
+    console.error("❌ DB Connection Error =>", err);
+    if (err instanceof mongoose.Error.MongooseServerSelectionError) {
+      console.error("Server selection failed. Check network, URI, and Atlas IP whitelist.");
+    }
+  });
+
+// Optional: handle runtime disconnects
+mongoose.connection.on("disconnected", () => {
+  console.warn("⚠️ DB disconnected!");
+});
+
+mongoose.connection.on("reconnected", () => {
+  console.log("♻️ DB reconnected!");
+});
 
 // autoIncrement.initialize(mongoose.connection);
 
