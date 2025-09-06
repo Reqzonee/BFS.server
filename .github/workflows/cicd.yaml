@@ -39,4 +39,7 @@ jobs:
                   script: |
                       cd /home/demo/public_html/
                       export PATH=$PATH:/usr/local/bin
-                      pm2 --help
+                      pm2 start process.json
+                      pm2 save
+                      pm2 startup
+                      pm2 save
