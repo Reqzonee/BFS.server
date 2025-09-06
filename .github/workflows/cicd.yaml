@@ -38,4 +38,6 @@ jobs:
                   key: ${{ secrets.SSH_PRIVATE_KEY }}
                   script: |
                       cd /home/demo/public_html/
-                      ls -la
+                      npm install
+                      pm2 start process.json
+                      pm2 save
