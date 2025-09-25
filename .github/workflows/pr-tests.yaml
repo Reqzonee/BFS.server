@@ -36,7 +36,7 @@ jobs:
         id: tests
         run: |
           echo "Running tests..."
-          npm test -- --verbose --coverage --testResultsProcessor=jest-junit 2>&1 | tee test-results.txt
+          npm test -- --verbose --coverage 2>&1 | tee test-results.txt
           TEST_EXIT_CODE=${PIPESTATUS[0]}
           echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
           exit $TEST_EXIT_CODE
