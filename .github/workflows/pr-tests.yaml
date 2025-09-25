@@ -1,0 +1,275 @@
+name: PR Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          # Install bcrypt specifically to avoid potential issues
+          npm install bcrypt
+
+      - name: Run unit tests
+        id: tests
+        run: |
+          echo "Running tests..."
+          npm test -- --verbose --coverage --testResultsProcessor=jest-junit 2>&1 | tee test-results.txt
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $TEST_EXIT_CODE
+        continue-on-error: true
+
+      - name: Parse test results
+        id: parse-results
+        run: |
+          if [ -f test-results.txt ]; then
+            # Extract test summary
+            TOTAL_TESTS=$(grep -o "Tests:.*total" test-results.txt | tail -1 || echo "Tests: Unknown")
+            TOTAL_SUITES=$(grep -o "Test Suites:.*total" test-results.txt | tail -1 || echo "Test Suites: Unknown")
+            TIME_TAKEN=$(grep -o "Time:.*" test-results.txt | tail -1 || echo "Time: Unknown")
+            
+            # Check if tests passed or failed
+            if [ "${{ steps.tests.outputs.test_exit_code }}" = "0" ]; then
+              STATUS="✅ PASSED"
+              COLOR="28a745"
+            else
+              STATUS="❌ FAILED"
+              COLOR="d73a49"
+            fi
+            
+            echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+            echo "total_suites=$TOTAL_SUITES" >> $GITHUB_OUTPUT
+            echo "time_taken=$TIME_TAKEN" >> $GITHUB_OUTPUT
+            echo "status=$STATUS" >> $GITHUB_OUTPUT
+            echo "color=$COLOR" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate test report
+        id: test-report
+        run: |
+          cat << 'EOF' > test-report.md
+          ## 🧪 Unit Test Results for Node.js ${{ matrix.node-version }}
+
+          **Status:** ${{ steps.parse-results.outputs.status }}
+
+          **Summary:**
+          - ${{ steps.parse-results.outputs.total_suites }}
+          - ${{ steps.parse-results.outputs.total_tests }}
+          - ${{ steps.parse-results.outputs.time_taken }}
+
+          <details>
+          <summary>📋 Full Test Output</summary>
+
+          ```
+          $(cat test-results.txt)
+          ```
+
+          </details>
+
+          ---
+          *Triggered by: ${{ github.event_name }} on ${{ github.ref_name }}*
+          *Commit: ${{ github.sha }}*
+          EOF
+
+      - name: Comment PR - Success
+        if: steps.tests.outputs.test_exit_code == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const testReport = fs.readFileSync('test-report.md', 'utf8');
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Unit Test Results for Node.js ${{ matrix.node-version }}')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: testReport
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: testReport
+              });
+            }
+
+      - name: Comment PR - Failure
+        if: steps.tests.outputs.test_exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const testReport = fs.readFileSync('test-report.md', 'utf8');
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Unit Test Results for Node.js ${{ matrix.node-version }}')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: testReport
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: testReport
+              });
+            }
+
+      - name: Create check run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testStatus = ${{ steps.tests.outputs.test_exit_code }} == 0 ? 'success' : 'failure';
+            const conclusion = ${{ steps.tests.outputs.test_exit_code }} == 0 ? 'success' : 'failure';
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Unit Tests (Node.js ${{ matrix.node-version }})',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: conclusion,
+              output: {
+                title: '${{ steps.parse-results.outputs.status }} Unit Tests',
+                summary: 'Node.js ${{ matrix.node-version }}\n${{ steps.parse-results.outputs.total_suites }}\n${{ steps.parse-results.outputs.total_tests }}',
+                text: 'Check the PR comment for detailed test output.'
+              }
+            });
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-node-${{ matrix.node-version }}
+          path: |
+            test-results.txt
+            coverage/
+          retention-days: 30
+
+      - name: Fail job if tests failed
+        if: steps.tests.outputs.test_exit_code != '0'
+        run: |
+          echo "Tests failed with exit code ${{ steps.tests.outputs.test_exit_code }}"
+          exit 1
+
+  # Summary job to provide overall status
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+
+    steps:
+      - name: Generate summary comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testJobs = ${{ toJson(needs.test) }};
+            const results = testJobs.result;
+
+            let summaryMessage = "## 📊 Test Suite Summary\n\n";
+
+            if (results === 'success') {
+              summaryMessage += "✅ **All tests passed successfully across all Node.js versions!**\n\n";
+              summaryMessage += "🎉 This PR is ready for review.\n\n";
+            } else if (results === 'failure') {
+              summaryMessage += "❌ **Some tests failed.**\n\n";
+              summaryMessage += "Please check the individual test results above and fix the failing tests before merging.\n\n";
+            } else {
+              summaryMessage += "⚠️ **Test run was cancelled or had issues.**\n\n";
+            }
+
+            summaryMessage += `**PR Details:**\n`;
+            summaryMessage += `- Branch: \`${{ github.head_ref }}\`\n`;
+            summaryMessage += `- Target: \`${{ github.base_ref }}\`\n`;
+            summaryMessage += `- Commit: \`${{ github.sha }}\`\n`;
+            summaryMessage += `- Author: @${{ github.actor }}\n\n`;
+            summaryMessage += `---\n`;
+            summaryMessage += `*This comment will be updated automatically when new commits are pushed.*`;
+
+            // Find existing summary comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const summaryComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Test Suite Summary')
+            );
+
+            if (summaryComment) {
+              // Update existing summary comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: summaryComment.id,
+                body: summaryMessage
+              });
+            } else {
+              // Create new summary comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summaryMessage
+              });
+            }

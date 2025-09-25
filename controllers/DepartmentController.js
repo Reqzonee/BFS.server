@@ -7,6 +7,15 @@ const {
 exports.createDepartment = async (req, res) => {
     try {
         const { departmentName, departmentCode, isActive } = req.body;
+        console.log("Request Body:", req.body); // Debugging line
+        
+        if (!departmentName && !departmentCode) {
+            return res.status(400).json({
+                message: "Department name and code are required",
+                isOk: false,
+                status: 400,
+            });
+        }
 
         const existingDepartment = await DepartmentModels.findOne({
             departmentCode,
