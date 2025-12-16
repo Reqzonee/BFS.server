@@ -3,7 +3,7 @@ name: Deploy Node.js Backend - Security Gate & Deploy
 on:
     push:
         branches:
-            - developement
+            - main
 
 env:
     # --- SonarCloud Configuration ---
