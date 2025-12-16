@@ -42,6 +42,7 @@ jobs:
                   projectBaseDir: .
                   # Wait for Quality Gate result - if it fails, the workflow will fail
                   args: >
+                      -Dsonar.branch.name=developement
                       -Dsonar.qualitygate.wait=true
                       -Dsonar.qualitygate.timeout=300
 
