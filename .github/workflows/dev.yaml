@@ -27,8 +27,8 @@ jobs:
                   # Required for deep analysis and tracking of code changes
                   fetch-depth: 0
 
-            - name: SonarCloud Scan
-              # This action handles dependency installation and runs the scan
+            - name: SonarCloud Scan with Quality Gate
+              # This action handles dependency installation, runs the scan, and waits for Quality Gate
               uses: SonarSource/sonarcloud-github-action@v2.2
               env:
                   #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used by SonarCloud for PR decoration
@@ -36,14 +36,10 @@ jobs:
               with:
                   # Uses the project key/organization defined in the environment variables
                   projectBaseDir: .
-
-            - name: Wait for Quality Gate Status
-              # This action pauses the workflow and queries SonarCloud for the result.
-              # If the Quality Gate is 'FAILED', this step fails, and the deployment is blocked.
-              uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
-              timeout-minutes: 5 # Time out if the status takes too long
-              env:
-                  SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+                  # Wait for Quality Gate result - if it fails, the workflow will fail
+                  args: >
+                      -Dsonar.qualitygate.wait=true
+                      -Dsonar.qualitygate.timeout=300
 
     # --------------------------------------------------------------------------
     # 2. DEPLOYMENT (BLOCKED by SonarCloud Gate)
