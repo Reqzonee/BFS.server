@@ -40,7 +40,7 @@ jobs:
             - name: Wait for Quality Gate Status
               # This action pauses the workflow and queries SonarCloud for the result.
               # If the Quality Gate is 'FAILED', this step fails, and the deployment is blocked.
-              uses: sonarsource/sonarcloud-quality-gate-action@v1.0
+              uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
               timeout-minutes: 5 # Time out if the status takes too long
               env:
                   SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
