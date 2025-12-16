@@ -6,6 +6,10 @@ const { generateToken } = require("../utils/generateToken.js");
 const EmployeeModels = require("../models/Employee.js");
 const { ObjectId } = require("mongodb");
 
+const countFunc = async () => {
+    const count = await CompanyMasterModels.countDocuments();
+};
+
 exports.createCompanyMaster = async (req, res) => {
     try {
         const {
@@ -145,13 +149,19 @@ exports.loginCompany = async (req, res) => {
     let user = null;
     let token = null;
 
-    const companyMaster = await CompanyMasterModels.findOne({ email, isActive: true })
+    const companyMaster = await CompanyMasterModels.findOne({
+        email,
+        isActive: true,
+    })
         .populate("countryId")
         .populate("stateId")
         .populate("cityId")
         .exec();
-    
-    const employee = await EmployeeModels.findOne({ emailOffice: email, isActive: true})
+
+    const employee = await EmployeeModels.findOne({
+        emailOffice: email,
+        isActive: true,
+    })
         .populate("departmentId")
         .populate("stateId")
         .populate("cityId")
@@ -167,7 +177,6 @@ exports.loginCompany = async (req, res) => {
         token = await generateToken(employee._id, "EMPLOYEE");
     }
 
-
     if (!user) {
         return res.status(404).json({
             isOk: false,
@@ -175,10 +184,7 @@ exports.loginCompany = async (req, res) => {
         });
     }
 
-    const isPasswordMatch = await bcrypt.compare(
-        password,
-        user.password
-    );
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
         return res.status(400).json({
@@ -187,7 +193,7 @@ exports.loginCompany = async (req, res) => {
         });
     }
 
-    const company = await CompanyMasterModels.findOne({isSuperAdmin:false});
+    const company = await CompanyMasterModels.findOne({ isSuperAdmin: false });
 
     const dataToSend = user;
 
@@ -241,7 +247,9 @@ exports.getCompanyMasterById = async (req, res) => {
             role = "ADMIN";
         }
 
-        const company = await CompanyMasterModels.findOne({isSuperAdmin:false});
+        const company = await CompanyMasterModels.findOne({
+            isSuperAdmin: false,
+        });
 
         if (employee) {
             user.companyName = company ? company.companyName : "";
