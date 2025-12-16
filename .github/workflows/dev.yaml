@@ -42,6 +42,8 @@ jobs:
                   projectBaseDir: .
                   # Wait for Quality Gate result - if it fails, the workflow will fail
                   args: >
+                      -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+                      -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
                       -Dsonar.qualitygate.wait=true
                       -Dsonar.qualitygate.timeout=300
 
