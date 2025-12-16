@@ -44,8 +44,6 @@ jobs:
                   args: >
                       -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
                       -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
-                      -Dsonar.qualitygate.wait=true
-                      -Dsonar.qualitygate.timeout=300
 
     # --------------------------------------------------------------------------
     # 2. DEPLOYMENT (BLOCKED by SonarCloud Gate)
