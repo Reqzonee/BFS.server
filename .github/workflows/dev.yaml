@@ -1,12 +1,56 @@
-name: Deploy Node.js Backend via FTP
+name: Deploy Node.js Backend - Security Gate & Deploy
 
 on:
     push:
         branches:
-            - development
+            - main
+
+env:
+    # --- SonarCloud Configuration ---
+    # These must be set as Secrets in your GitHub Repository
+    SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }} # e.g., 'your-company_backend-repo'
+    SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+    SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} # Defaults to https://sonarcloud.io
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
+    # --------------------------------------------------------------------------
+    # 1. SECURITY/QUALITY GATE (SONARCLOUD)
+    # --------------------------------------------------------------------------
+    sonarqube-scan:
+        name: Code Quality Check
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+            checks: write
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  # Required for deep analysis and tracking of code changes
+                  fetch-depth: 0
+
+            - name: SonarCloud Scan with Quality Gate
+              # This action handles dependency installation, runs the scan, and waits for Quality Gate
+              uses: SonarSource/sonarcloud-github-action@v2.2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used by SonarCloud for PR decoration
+                  SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+              with:
+                  # Uses the project key/organization defined in the environment variables
+                  projectBaseDir: .
+                  # Wait for Quality Gate result - if it fails, the workflow will fail
+                  args: >
+                      -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+                      -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+
+    # --------------------------------------------------------------------------
+    # 2. DEPLOYMENT (BLOCKED by SonarCloud Gate)
+    # --------------------------------------------------------------------------
     deploy-backend:
+        # CRITICAL: This line ensures deployment only runs if the scan job was successful.
+        needs: [sonarqube-scan]
         runs-on: ubuntu-latest
 
         steps:
@@ -14,13 +58,14 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Deploy backend files via FTP
+              # Existing FTP deployment step
               uses: SamKirkland/FTP-Deploy-Action@v4.3.4
               with:
-                  server: ${{ secrets.FTP_SERVER }}
-                  username: ${{ secrets.FTP_USERNAME }}
-                  password: ${{ secrets.FTP_PASSWORD }}
+                  server: ${{ secrets.FTP_SERVER_TEST }}
+                  username: ${{ secrets.FTP_USERNAME_TEST }}
+                  password: ${{ secrets.FTP_PASSWORD_TEST }}
                   local-dir: ./
-                  server-dir: /home/demo/public_html/
+                  server-dir: /public_html/
                   dangerous-clean-slate: false
                   exclude: |
                       **/node_modules/**
