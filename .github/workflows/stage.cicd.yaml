@@ -53,6 +53,7 @@ jobs:
           source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
           target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
           tar_tmp_path: "/tmp/deploy.tar.gz"
+          tar_exec: "tar -m --no-same-owner"
 
       - name: Install Node dependencies and start process
         uses: appleboy/ssh-action@v1.0.3
