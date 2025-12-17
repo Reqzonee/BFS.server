@@ -1,62 +1,69 @@
 name: Deploy Node.js Backend - Security Gate & Deploy
 
 on:
-    push:
-        branches:
-            - staging
+  push:
+    branches:
+      - staging
 
 env:
-    SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
-    SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-    SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+  SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
-    sonarqube-scan:
-        name: Code Quality Check
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            pull-requests: write
-            checks: write
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+  sonarqube-scan:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - name: SonarCloud Scan with Quality Gate
-              uses: SonarSource/sonarcloud-github-action@v2.2
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-              with:
-                  projectBaseDir: .
-                  args: >
-                      -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
-                      -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+      - name: SonarCloud Scan with Quality Gate
+        uses: SonarSource/sonarcloud-github-action@v2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
 
-    deploy-backend:
-        needs: [sonarqube-scan]
-        runs-on: ubuntu-latest
+  deploy-backend:
+    needs: [sonarqube-scan]
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Deploy backend files via FTP
-              uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-              with:
-                  server: ${{ secrets.FTP_SERVER_TEST }}
-                  username: ${{ secrets.FTP_USERNAME_TEST }}
-                  password: ${{ secrets.FTP_PASSWORD_TEST }}
-                  local-dir: ./
-                  server-dir: /public_html/
-                  dangerous-clean-slate: false
-                  exclude: |
-                      **/node_modules/**
-                      **/.git*
-                      **/.github/**
-                      **/frontend/**
-                      **/build/**
-                      **/package-lock.json
+      - name: Upload files via SFTP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
+          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+
+      - name: Install Node dependencies and start process
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
+            export PATH=$PATH:/usr/local/bin
+            npm install
+            pm2 restart process.json
+            pm2 save
+            pm2 startup
+            pm2 save
