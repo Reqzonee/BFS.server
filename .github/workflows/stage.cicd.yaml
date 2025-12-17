@@ -43,29 +43,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create deployment artifact
-        run: |
-          tar -czf deploy.tar.gz \
-            --exclude='deploy.tar.gz' \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='frontend' \
-            --exclude='build' \
-            --exclude='package-lock.json' \
-            .
-
-      - name: Upload artifact via SFTP
+      - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "deploy.tar.gz"
-          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/"
+          source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
+          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+          tar_tmp_path: "/tmp/deploy.tar.gz"
 
-      - name: Extract and Deploy
+      - name: Install Node dependencies and start process
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -73,23 +62,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            # Define vars
-            DEPLOY_DIR="/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
-            ARTIFACT="/home/${{ secrets.FTP_USERNAME_TEST }}/deploy.tar.gz"
-
-            # Create deployment directory if not exists
-            mkdir -p $DEPLOY_DIR
-
-            # Extract with permission handling
-            # -m: don't extract modified time
-            # --no-same-owner: extract as current user
-            tar -xzf $ARTIFACT -C $DEPLOY_DIR -m --no-same-owner
-
-            # Cleanup artifact
-            rm $ARTIFACT
-
-            # Navigate to project
-            cd $DEPLOY_DIR
+            # Navigate to the project
+            cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
 
             # Load NVM (Needed for non-interactive SSH shells to find npm/node)
             export NVM_DIR="$HOME/.nvm"
