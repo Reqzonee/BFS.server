@@ -43,19 +43,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Upload files via SFTP
+      - name: Create deployment artifact
+        run: |
+          tar -czf deploy.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='frontend' \
+            --exclude='build' \
+            --exclude='package-lock.json' \
+            .
+
+      - name: Upload artifact via SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
-          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
-          tar_tmp_path: "/tmp/deploy.tar.gz"
-          tar_exec: "tar -m --no-same-owner"
+          source: "deploy.tar.gz"
+          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/"
 
-      - name: Install Node dependencies and start process
+      - name: Extract and Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -63,8 +72,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            # Navigate to the project
-            cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
+            # Define vars
+            DEPLOY_DIR="/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+            ARTIFACT="/home/${{ secrets.FTP_USERNAME_TEST }}/deploy.tar.gz"
+
+            # Create deployment directory if not exists
+            mkdir -p $DEPLOY_DIR
+
+            # Extract with permission handling
+            # -m: don't extract modified time
+            # --no-same-owner: extract as current user
+            tar -xzf $ARTIFACT -C $DEPLOY_DIR -m --no-same-owner
+
+            # Cleanup artifact
+            rm $ARTIFACT
+
+            # Navigate to project
+            cd $DEPLOY_DIR
 
             # Load NVM (Needed for non-interactive SSH shells to find npm/node)
             export NVM_DIR="$HOME/.nvm"
