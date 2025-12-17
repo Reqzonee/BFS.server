@@ -46,6 +46,7 @@ jobs:
       - name: Create deployment artifact
         run: |
           tar -czf deploy.tar.gz \
+            --exclude='deploy.tar.gz' \
             --exclude='node_modules' \
             --exclude='.git' \
             --exclude='.github' \
