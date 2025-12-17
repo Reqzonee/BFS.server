@@ -40,22 +40,21 @@ jobs:
     # needs: [sonarqube-scan]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Upload files via SFTP
-        uses: appleboy/scp-action@v0.1.7
+      - name: SFTP Deploy (Direct File Transfer)
+        uses: app-generator/sftp-action@v1.0.4
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          username: ${{ secrets.SSH_USER }} # pm2manager
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
-          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
-          tar_exec: "tar"
-          tar_flags: "--no-same-owner --no-same-permissions --no-overwrite-dir -xzvf"
+          # Local folder to upload
+          local_dir: "."
+          # Remote target
+          remote_dir: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+          # Exclude files
+          exclude: "node_modules,.git,.github,frontend,build,package-lock.json"
 
-      - name: Install Node dependencies and start process
+      - name: Install dependencies and start process
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -63,14 +62,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            # Navigate to the project
             cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
 
-            # Load NVM (Needed for non-interactive SSH shells to find npm/node)
+            # Load NVM for the pm2manager
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-            # Run commands
             npm install
             pm2 restart process.json || pm2 start process.json --name "${{ secrets.FTP_USERNAME_TEST }}"
             pm2 save
