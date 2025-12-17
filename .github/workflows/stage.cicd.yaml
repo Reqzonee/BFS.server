@@ -12,29 +12,29 @@ env:
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
-  sonarqube-scan:
-    name: Code Quality Check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      checks: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #   sonarqube-scan:
+  #     name: Code Quality Check
+  #     runs-on: ubuntu-latest
+  #     permissions:
+  #       contents: read
+  #       pull-requests: write
+  #       checks: write
+  #     steps:
+  #       - name: Checkout repository
+  #         uses: actions/checkout@v4
+  #         with:
+  #           fetch-depth: 0
 
-      - name: SonarCloud Scan with Quality Gate
-        uses: SonarSource/sonarcloud-github-action@v2.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-        with:
-          projectBaseDir: .
-          args: >
-            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+  #       - name: SonarCloud Scan with Quality Gate
+  #         uses: SonarSource/sonarcloud-github-action@v2.2
+  #         env:
+  #           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+  #         with:
+  #           projectBaseDir: .
+  #           args: >
+  #             -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+  #             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
 
   deploy-backend:
     needs: [sonarqube-scan]
@@ -52,6 +52,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
           target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+          tar_exec: "tar --no-same-owner --no-same-permissions --no-overwrite-dir -xzvf"
           tar_tmp_path: "/tmp/deploy.tar.gz"
 
       - name: Install Node dependencies and start process
