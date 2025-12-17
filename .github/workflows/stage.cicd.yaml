@@ -40,21 +40,29 @@ jobs:
     # needs: [sonarqube-scan]
     runs-on: ubuntu-latest
     steps:
-      - name: SFTP Deploy (Direct File Transfer)
-        uses: app-generator/sftp-action@v1.0.4
+      - name: Create deployment artifact
+        run: |
+          tar -czf deploy.tar.gz \
+            --exclude='deploy.tar.gz' \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='frontend' \
+            --exclude='build' \
+            --exclude='package-lock.json' \
+            .
+
+      - name: Upload artifact via SFTP
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }} # pm2manager
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          # Local folder to upload
-          local_dir: "."
-          # Remote target
-          remote_dir: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
-          # Exclude files
-          exclude: "node_modules,.git,.github,frontend,build,package-lock.json"
+          source: "deploy.tar.gz"
+          target: "/home/${{ secrets.FTP_USERNAME_TEST }}/"
 
-      - name: Install dependencies and start process
+      - name: Extract and Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -62,12 +70,29 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
+            # Define vars
+            DEPLOY_DIR="/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+            ARTIFACT="/home/${{ secrets.FTP_USERNAME_TEST }}/deploy.tar.gz"
 
-            # Load NVM for the pm2manager
+            # Create deployment directory if not exists
+            mkdir -p $DEPLOY_DIR
+
+            # Extract with permission handling
+            # -m: don't extract modified time
+            # --no-same-owner: extract as current user
+            tar -xzf $ARTIFACT -C $DEPLOY_DIR -m --no-same-owner
+
+            # Cleanup artifact
+            rm $ARTIFACT
+
+            # Navigate to project
+            cd $DEPLOY_DIR
+
+            # Load NVM (Needed for non-interactive SSH shells to find npm/node)
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
+            # Run commands
             npm install
             pm2 restart process.json || pm2 start process.json --name "${{ secrets.FTP_USERNAME_TEST }}"
             pm2 save
