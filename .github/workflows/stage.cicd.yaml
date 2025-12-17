@@ -39,7 +39,6 @@ jobs:
   deploy-backend:
     needs: [sonarqube-scan]
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,6 +52,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
           target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
+          tar_tmp_path: "/tmp/deploy.tar.gz"
 
       - name: Install Node dependencies and start process
         uses: appleboy/ssh-action@v1.0.3
@@ -62,10 +62,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
+            # Navigate to the project
             cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
-            export PATH=$PATH:/usr/local/bin
+
+            # Load NVM (Needed for non-interactive SSH shells to find npm/node)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # Run commands
             npm install
-            pm2 restart process.json
-            pm2 save
-            pm2 startup
+            pm2 restart process.json || pm2 start process.json --name "${{ secrets.FTP_USERNAME_TEST }}"
             pm2 save
