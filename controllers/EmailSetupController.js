@@ -2,266 +2,266 @@ const EmailSetupModels = require("../models/EmailSetup.js");
 const EmailTemplateModels = require("../models/EmailTemplate.js");
 
 exports.createEmailSetup = async (req, res) => {
-    try {
-        const { email, appPassword, SSL, port, host, isActive } = req.body;
+  try {
+    const { email, appPassword, SSL, port, host, isActive } = req.body;
 
-        const existingEmailSetup = await EmailSetupModels.findOne({ email });
+    const existingEmailSetup = await EmailSetupModels.findOne({ email });
 
-        if (existingEmailSetup) {
-            return res.status(409).json({
-                isOk: false,
-                status: 409,
-                message: "Email Setup already exists",
-            });
-        }
-
-        const newEmailSetup = new EmailSetupModels({
-            email,
-            appPassword,
-            SSL,
-            port,
-            host,
-            isActive,
-        });
-
-        await newEmailSetup.save();
-
-        res.status(201).json({
-            status: 201,
-            isOk: true,
-            message: "Email Setup created successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (existingEmailSetup) {
+      return res.status(409).json({
+        isOk: false,
+        status: 409,
+        message: "Email Setup already exists",
+      });
     }
+
+    const newEmailSetup = new EmailSetupModels({
+      email,
+      appPassword,
+      SSL,
+      port,
+      host,
+      isActive,
+    });
+
+    await newEmailSetup.save();
+
+    res.status(201).json({
+      status: 201,
+      isOk: true,
+      message: "Email Setup created successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.updateEmailSetup = async (req, res) => {
-    try {
-        const { emailSetupId } = req.params;
+  try {
+    const { emailSetupId } = req.params;
 
-        const { email, appPassword, SSL, port, host, isActive } = req.body;
+    const { email, appPassword, SSL, port, host, isActive } = req.body;
 
-        const emailSetup = await EmailSetupModels.findById(emailSetupId);
+    const emailSetup = await EmailSetupModels.findById(emailSetupId);
 
-        if (!emailSetup) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Setup not found",
-            });
-        }
-
-        const existingEmailSetup = await EmailSetupModels.findOne({
-            email,
-            _id: { $ne: emailSetupId },
-        });
-
-        if (existingEmailSetup) {
-            return res.status(409).json({
-                isOk: false,
-                status: 409,
-                message: "Email Setup already exists",
-            });
-        }
-
-        emailSetup.email = email;
-        emailSetup.appPassword = appPassword;
-        emailSetup.SSL = SSL;
-        emailSetup.port = port;
-        emailSetup.host = host;
-        emailSetup.isActive = isActive;
-
-        await emailSetup.save();
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            message: "Email Setup updated successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (!emailSetup) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Setup not found",
+      });
     }
+
+    const existingEmailSetup = await EmailSetupModels.findOne({
+      email,
+      _id: { $ne: emailSetupId },
+    });
+
+    if (existingEmailSetup) {
+      return res.status(409).json({
+        isOk: false,
+        status: 409,
+        message: "Email Setup already exists",
+      });
+    }
+
+    emailSetup.email = email;
+    emailSetup.appPassword = appPassword;
+    emailSetup.SSL = SSL;
+    emailSetup.port = port;
+    emailSetup.host = host;
+    emailSetup.isActive = isActive;
+
+    await emailSetup.save();
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      message: "Email Setup updated successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.getEmailSetupById = async (req, res) => {
-    try {
-        const { emailSetupId } = req.params;
+  try {
+    const { emailSetupId } = req.params;
 
-        const emailSetup = await EmailSetupModels.findById(emailSetupId);
+    const emailSetup = await EmailSetupModels.findById(emailSetupId);
 
-        if (!emailSetup) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Setup not found",
-            });
-        }
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            data: emailSetup,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (!emailSetup) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Setup not found",
+      });
     }
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      data: emailSetup,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.listAllEmailSetup = async (req, res) => {
-    try {
-        const emailSetup = await EmailSetupModels.find({ isActive: true });
+  try {
+    const emailSetup = await EmailSetupModels.find({ isActive: true });
 
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            data: emailSetup,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
-    }
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      data: emailSetup,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.deleteEmailSetup = async (req, res) => {
-    try {
-        const { emailSetupId } = req.params;
+  try {
+    const { emailSetupId } = req.params;
 
-        const emailSetup = await EmailSetupModels.findById(emailSetupId);
+    const emailSetup = await EmailSetupModels.findById(emailSetupId);
 
-        if (!emailSetup) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Setup not found",
-            });
-        }
-
-        const dependantTemplate = await EmailTemplateModels.find({
-            emailFrom: emailSetup._id,
-        });
-
-        if (dependantTemplate.length > 0) {
-            return res.status(400).json({
-                isOk: false,
-                status: 400,
-                message:
-                    "Email Setup is being used in Email Template. Either Delete or change the Email Field in the Template.",
-            });
-        }
-
-        await EmailSetupModels.findByIdAndDelete(emailSetupId);
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            message: "Email Setup deleted successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (!emailSetup) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Setup not found",
+      });
     }
+
+    const dependantTemplate = await EmailTemplateModels.find({
+      emailFrom: emailSetup._id,
+    });
+
+    if (dependantTemplate.length > 0) {
+      return res.status(400).json({
+        isOk: false,
+        status: 400,
+        message:
+          "Email Setup is being used in Email Template. Either Delete or change the Email Field in the Template.",
+      });
+    }
+
+    await EmailSetupModels.findByIdAndDelete(emailSetupId);
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      message: "Email Setup deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.listEmailSetupByParams = async (req, res) => {
-    try {
-        let { skip, per_page, sorton, sortdir, match, IsActive } = req.body;
+  try {
+    let { skip, per_page, sorton, sortdir, match, IsActive } = req.body;
 
-        let query = [
+    let query = [
+      {
+        $match: { isActive: IsActive },
+      },
+      {
+        $facet: {
+          stage1: [
             {
-                $match: { isActive: IsActive },
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+              },
             },
-            {
-                $facet: {
-                    stage1: [
-                        {
-                            $group: {
-                                _id: null,
-                                count: { $sum: 1 },
-                            },
-                        },
-                    ],
-                    stage2: [{ $skip: skip }, { $limit: per_page }],
+          ],
+          stage2: [{ $skip: skip }, { $limit: per_page }],
+        },
+      },
+      {
+        $unwind: "$stage1",
+      },
+      {
+        $project: {
+          count: "$stage1.count",
+          data: "$stage2",
+        },
+      },
+    ];
+
+    if (match) {
+      query = [
+        {
+          $match: {
+            $or: [
+              {
+                email: {
+                  $regex: match,
+                  $options: "i",
                 },
-            },
-            {
-                $unwind: "$stage1",
-            },
-            {
-                $project: {
-                    count: "$stage1.count",
-                    data: "$stage2",
-                },
-            },
-        ];
-
-        if (match) {
-            query = [
-                {
-                    $match: {
-                        $or: [
-                            {
-                                email: {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                        ],
-                    },
-                },
-            ].concat(query);
-        }
-
-        // Add sorting
-        if (sorton && sortdir) {
-            let sort = {};
-            sort[sorton] = sortdir === "desc" ? -1 : 1;
-            query = [{ $sort: sort }].concat(query);
-        } else {
-            query = [{ $sort: { createdAt: -1 } }].concat(query);
-        }
-
-        const list = await EmailSetupModels.aggregate(query);
-
-        return res.status(200).json({
-            isOk: true,
-            data: list,
-            status: 200,
-        });
-    } catch (error) {
-        console.error("Error:", error);
-        return res.status(500).json({
-            isOk: false,
-            message: error.message,
-            status: 500,
-        });
+              },
+            ],
+          },
+        },
+      ].concat(query);
     }
+
+    // Add sorting
+    if (sorton && sortdir) {
+      let sort = {};
+      sort[sorton] = sortdir === "desc" ? -1 : 1;
+      query = [{ $sort: sort }].concat(query);
+    } else {
+      query = [{ $sort: { createdAt: -1 } }].concat(query);
+    }
+
+    const list = await EmailSetupModels.aggregate(query);
+
+    return res.status(200).json({
+      isOk: true,
+      data: list,
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
 };

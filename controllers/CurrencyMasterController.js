@@ -8,7 +8,7 @@ const createCurrencyMaster = async (req, res) => {
 
     // Check if currency with same name already exists
     const existingCurrencyByName = await CurrencyMaster.findOne({
-      currencyName: { $regex: new RegExp(`^${currencyName}$`, 'i') }
+      currencyName: { $regex: new RegExp(`^${currencyName}$`, "i") },
     });
 
     if (existingCurrencyByName) {
@@ -20,7 +20,7 @@ const createCurrencyMaster = async (req, res) => {
 
     // Check if currency with same code already exists
     const existingCurrencyByCode = await CurrencyMaster.findOne({
-      currencyCode: { $regex: new RegExp(`^${currencyCode}$`, 'i') }
+      currencyCode: { $regex: new RegExp(`^${currencyCode}$`, "i") },
     });
 
     if (existingCurrencyByCode) {
@@ -89,7 +89,7 @@ const updateCurrencyMaster = async (req, res) => {
     // Check if another currency with same name already exists (excluding current currency)
     const existingCurrencyByName = await CurrencyMaster.findOne({
       _id: { $ne: id },
-      currencyName: { $regex: new RegExp(`^${currencyName}$`, 'i') }
+      currencyName: { $regex: new RegExp(`^${currencyName}$`, "i") },
     });
 
     if (existingCurrencyByName) {
@@ -102,7 +102,7 @@ const updateCurrencyMaster = async (req, res) => {
     // Check if another currency with same code already exists (excluding current currency)
     const existingCurrencyByCode = await CurrencyMaster.findOne({
       _id: { $ne: id },
-      currencyCode: { $regex: new RegExp(`^${currencyCode}$`, 'i') }
+      currencyCode: { $regex: new RegExp(`^${currencyCode}$`, "i") },
     });
 
     if (existingCurrencyByCode) {
@@ -120,7 +120,7 @@ const updateCurrencyMaster = async (req, res) => {
         currencySymbol,
         isActive,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedCurrencyMaster) {
@@ -151,18 +151,22 @@ const deleteCurrencyMaster = async (req, res) => {
     const { id } = req.params;
 
     // Check for references before deletion
-    const referenceInfo = await referenceHelper.getReferencingCounts("CurrencyMaster", id);
-    
+    const referenceInfo = await referenceHelper.getReferencingCounts(
+      "CurrencyMaster",
+      id,
+    );
+
     if (referenceInfo.totalReferences > 0) {
-        return res.status(409).json({
-            message:
-                "Cannot delete Currency. It is being used by other records.",
-            isOk: false,
-            status: 409,
-            totalReferences: referenceInfo.totalReferences,
-            references: referenceInfo.details,
-            formattedMessage: referenceHelper.formatReferenceMessage(referenceInfo.details),
-        });
+      return res.status(409).json({
+        message: "Cannot delete Currency. It is being used by other records.",
+        isOk: false,
+        status: 409,
+        totalReferences: referenceInfo.totalReferences,
+        references: referenceInfo.details,
+        formattedMessage: referenceHelper.formatReferenceMessage(
+          referenceInfo.details,
+        ),
+      });
     }
 
     const deletedCurrencyMaster = await CurrencyMaster.findByIdAndDelete(id);

@@ -50,7 +50,7 @@ jobs:
             TOTAL_TESTS=$(grep -o "Tests:.*total" test-results.txt | tail -1 || echo "Tests: Unknown")
             TOTAL_SUITES=$(grep -o "Test Suites:.*total" test-results.txt | tail -1 || echo "Test Suites: Unknown")
             TIME_TAKEN=$(grep -o "Time:.*" test-results.txt | tail -1 || echo "Time: Unknown")
-            
+
             # Check if tests passed or failed
             if [ "${{ steps.tests.outputs.test_exit_code }}" = "0" ]; then
               STATUS="✅ PASSED"
@@ -59,7 +59,7 @@ jobs:
               STATUS="❌ FAILED"
               COLOR="d73a49"
             fi
-            
+
             echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
             echo "total_suites=$TOTAL_SUITES" >> $GITHUB_OUTPUT
             echo "time_taken=$TIME_TAKEN" >> $GITHUB_OUTPUT
@@ -109,8 +109,8 @@ jobs:
               issue_number: context.issue.number,
             });
 
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('Unit Test Results for Node.js ${{ matrix.node-version }}')
             );
 
@@ -147,8 +147,8 @@ jobs:
               issue_number: context.issue.number,
             });
 
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('Unit Test Results for Node.js ${{ matrix.node-version }}')
             );
 
@@ -248,8 +248,8 @@ jobs:
               issue_number: context.issue.number,
             });
 
-            const summaryComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
+            const summaryComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('Test Suite Summary')
             );
 

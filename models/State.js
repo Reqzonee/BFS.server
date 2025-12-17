@@ -1,27 +1,27 @@
 const mongoose = require("mongoose");
 
 const StateSchema = new mongoose.Schema(
-    {
-        stateName: {
-            type: String,
-            required: true,
-        },
-        stateCode: {
-            type: String,
-            required: true,
-        },
-        countryId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Country",
-            required: true,
-        },
-        isActive: {
-            type: Boolean,
-            default: true,
-            required: true,
-        },
+  {
+    stateName: {
+      type: String,
+      required: true,
     },
-    { timestamps: true }
+    stateCode: {
+      type: String,
+      required: true,
+    },
+    countryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Country",
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      required: true,
+    },
+  },
+  { timestamps: true },
 );
 
 // Create compound unique index for stateCode and countryId combination

@@ -1,312 +1,308 @@
 const EmailTemplateModels = require("../models/EmailTemplate.js");
 
 exports.createEmailTemplate = async (req, res) => {
-    try {
-        const {
-            templateName,
-            emailFrom,
-            emailFor,
-            mailerName,
-            emailCC,
-            emailBCC,
-            emailSubject,
-            emailSignature,
-            isActive,
-        } = req.body;
+  try {
+    const {
+      templateName,
+      emailFrom,
+      emailFor,
+      mailerName,
+      emailCC,
+      emailBCC,
+      emailSubject,
+      emailSignature,
+      isActive,
+    } = req.body;
 
-        const emailTemplate = new EmailTemplateModels({
-            templateName,
-            emailFrom,
-            emailFor,
-            mailerName,
-            emailCC,
-            emailBCC,
-            emailSubject,
-            emailSignature,
-            isActive,
-        });
+    const emailTemplate = new EmailTemplateModels({
+      templateName,
+      emailFrom,
+      emailFor,
+      mailerName,
+      emailCC,
+      emailBCC,
+      emailSubject,
+      emailSignature,
+      isActive,
+    });
 
-        await emailTemplate.save();
+    await emailTemplate.save();
 
-        return res.status(201).json({
-            isOk: true,
-            status: 201,
-            message: "Email Template created successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
-    }
+    return res.status(201).json({
+      isOk: true,
+      status: 201,
+      message: "Email Template created successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.updateEmailTemplate = async (req, res) => {
-    try {
-        const { emailTemplateId } = req.params;
+  try {
+    const { emailTemplateId } = req.params;
 
-        const {
-            templateName,
-            emailFrom,
-            emailFor,
-            mailerName,
-            emailCC,
-            emailBCC,
-            emailSubject,
-            emailSignature,
-            isActive,
-        } = req.body;
+    const {
+      templateName,
+      emailFrom,
+      emailFor,
+      mailerName,
+      emailCC,
+      emailBCC,
+      emailSubject,
+      emailSignature,
+      isActive,
+    } = req.body;
 
-        const emailTemplate = await EmailTemplateModels.findById(
-            emailTemplateId
-        );
+    const emailTemplate = await EmailTemplateModels.findById(emailTemplateId);
 
-        if (!emailTemplate) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Template not found",
-            });
-        }
-
-        await EmailTemplateModels.findByIdAndUpdate(
-            emailTemplateId,
-            {
-                templateName,
-                emailFrom,
-                emailFor,
-                mailerName,
-                emailCC,
-                emailBCC,
-                emailSubject,
-                emailSignature,
-                isActive,
-            },
-            { new: true }
-        );
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            message: "Email Template updated successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (!emailTemplate) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Template not found",
+      });
     }
+
+    await EmailTemplateModels.findByIdAndUpdate(
+      emailTemplateId,
+      {
+        templateName,
+        emailFrom,
+        emailFor,
+        mailerName,
+        emailCC,
+        emailBCC,
+        emailSubject,
+        emailSignature,
+        isActive,
+      },
+      { new: true },
+    );
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      message: "Email Template updated successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.getEmailTemplateById = async (req, res) => {
-    try {
-        const { emailTemplateId } = req.params;
+  try {
+    const { emailTemplateId } = req.params;
 
-        const emailTemplate = await EmailTemplateModels.findById(
-            emailTemplateId
-        )
-            .populate("emailFrom")
-            .populate("emailFor");
+    const emailTemplate = await EmailTemplateModels.findById(emailTemplateId)
+      .populate("emailFrom")
+      .populate("emailFor");
 
-        if (!emailTemplate) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Template not found",
-            });
-        }
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            data: emailTemplate,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-            message: "Internal server error",
-            error: error,
-        });
+    if (!emailTemplate) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Template not found",
+      });
     }
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      data: emailTemplate,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.deleteEmailTemplate = async (req, res) => {
-    try {
-        const { emailTemplateId } = req.params;
+  try {
+    const { emailTemplateId } = req.params;
 
-        const emailTemplate = await EmailTemplateModels.findById(
-            emailTemplateId
-        );
+    const emailTemplate = await EmailTemplateModels.findById(emailTemplateId);
 
-        if (!emailTemplate) {
-            return res.status(404).json({
-                isOk: false,
-                status: 404,
-                message: "Email Template not found",
-            });
-        }
-
-        await EmailTemplateModels.findByIdAndDelete(emailTemplateId);
-
-        return res.status(200).json({
-            isOk: true,
-            status: 200,
-            message: "Email Template deleted successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            isOk: false,
-            status: 500,
-        message: "Internal server error",
-            error: error,
-        });
+    if (!emailTemplate) {
+      return res.status(404).json({
+        isOk: false,
+        status: 404,
+        message: "Email Template not found",
+      });
     }
+
+    await EmailTemplateModels.findByIdAndDelete(emailTemplateId);
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      message: "Email Template deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      isOk: false,
+      status: 500,
+      message: "Internal server error",
+      error: error,
+    });
+  }
 };
 
 exports.listEmailTemplateByParams = async (req, res) => {
-    try {
-        let { skip, per_page, sorton, sortdir, match, isActive } = req.body;
+  try {
+    let { skip, per_page, sorton, sortdir, match, isActive } = req.body;
 
-        let query = [
+    let query = [
+      {
+        $match: { isActive: isActive },
+      },
+      {
+        $lookup: {
+          from: "emailsetups",
+          localField: "emailFrom",
+          foreignField: "_id",
+          as: "emailFrom",
+        },
+      },
+      {
+        $lookup: {
+          from: "emailfors",
+          localField: "emailFor",
+          foreignField: "_id",
+          as: "emailFor",
+        },
+      },
+      {
+        $unwind: "$emailFrom",
+      },
+      {
+        $unwind: "$emailFor",
+      },
+      {
+        $facet: {
+          stage1: [
             {
-                $match: { isActive: isActive },
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+              },
             },
-            {
-                $lookup: {
-                    from: "emailsetups",
-                    localField: "emailFrom",
-                    foreignField: "_id",
-                    as: "emailFrom",
-                },
-            },
-            {
-                $lookup: {
-                    from: "emailfors",
-                    localField: "emailFor",
-                    foreignField: "_id",
-                    as: "emailFor",
-                },
-            },
-            {
-                $unwind: "$emailFrom",
-            },
-            {
-                $unwind: "$emailFor",
-            },
-            {
-                $facet: {
-                    stage1: [
-                        {
-                            $group: {
-                                _id: null,
-                                count: { $sum: 1 },
-                            },
-                        },
-                    ],
-                    stage2: [{ $skip: skip }, { $limit: per_page }],
-                },
-            },
-            {
-                $unwind: "$stage1",
-            },
-            {
-                $project: {
-                    count: "$stage1.count",
-                    data: "$stage2",
-                },
-            },
-        ];
+          ],
+          stage2: [{ $skip: skip }, { $limit: per_page }],
+        },
+      },
+      {
+        $unwind: "$stage1",
+      },
+      {
+        $project: {
+          count: "$stage1.count",
+          data: "$stage2",
+        },
+      },
+    ];
 
-        if (match) {
-            query = [
-                {
-                    $match: {
-                        $or: [
-                            {
-                                templateName: {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                            {
-                                mailerName: {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                            {
-                                emailSubject: {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                            {
-                                "emailFrom.email": {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                            {
-                                "emailFor.emailFor": {
-                                    $regex: match,
-                                    $options: "i",
-                                },
-                            },
-                        ],
-                    },
+    if (match) {
+      query = [
+        {
+          $match: {
+            $or: [
+              {
+                templateName: {
+                  $regex: match,
+                  $options: "i",
                 },
-            ].concat(query);
-        }
-
-        // Add sorting
-        if (sorton && sortdir) {
-            let sort = {};
-            sort[sorton] = sortdir === "desc" ? -1 : 1;
-            query = [{ $sort: sort }].concat(query);
-        } else {
-            query = [{ $sort: { createdAt: -1 } }].concat(query);
-        }
-
-        const list = await EmailTemplateModels.aggregate(query);
-
-        return res.status(200).json({
-            isOk: true,
-            data: list,
-            status: 200,
-        });
-    } catch (error) {
-        console.error("Error:", error);
-        return res.status(500).json({
-            isOk: false,
-            message: error.message,
-            status: 500,
-        });
+              },
+              {
+                mailerName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                emailSubject: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                "emailFrom.email": {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                "emailFor.emailFor": {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        },
+      ].concat(query);
     }
+
+    // Add sorting
+    if (sorton && sortdir) {
+      let sort = {};
+      sort[sorton] = sortdir === "desc" ? -1 : 1;
+      query = [{ $sort: sort }].concat(query);
+    } else {
+      query = [{ $sort: { createdAt: -1 } }].concat(query);
+    }
+
+    const list = await EmailTemplateModels.aggregate(query);
+
+    return res.status(200).json({
+      isOk: true,
+      data: list,
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
 };
 
 exports.listAllEmailTemplates = async (req, res) => {
-    try {
-        const emailTemplates = await EmailTemplateModels.find({ isActive: true }).select("_id templateName");
-        return res.status(200).json({
-            isOk: true,
-            data: emailTemplates,
-            status: 200,
-        });
-    } catch (error) {
-        console.error("Error:", error);
-        return res.status(500).json({
-            isOk: false,
-            message: error.message,
-            status: 500,
-        });
-    }
+  try {
+    const emailTemplates = await EmailTemplateModels.find({
+      isActive: true,
+    }).select("_id templateName");
+    return res.status(200).json({
+      isOk: true,
+      data: emailTemplates,
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
 };

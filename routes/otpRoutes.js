@@ -11,4 +11,4 @@ router.post("/verify-otp", otpController.verifyOtp);
 // Route to reset password after OTP verification
 router.post("/reset-password", otpController.resetPassword);
 
-module.exports = router; 
+module.exports = router;

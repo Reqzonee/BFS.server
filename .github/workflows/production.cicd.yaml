@@ -3,7 +3,7 @@ name: Deploy Node.js Backend via FTP
 on:
     push:
         branches:
-            - main
+            - production
 
 jobs:
     deploy-backend:
