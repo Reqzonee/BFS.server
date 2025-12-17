@@ -52,8 +52,8 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: ".,!node_modules,!.git,!.github,!frontend,!build,!package-lock.json"
           target: "/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/"
-          tar_exec: "tar --no-same-owner --no-same-permissions --no-overwrite-dir -xzvf"
-          tar_tmp_path: "/tmp/deploy.tar.gz"
+          tar_exec: "tar"
+          tar_flags: "--no-same-owner --no-same-permissions --no-overwrite-dir -xzvf"
 
       - name: Install Node dependencies and start process
         uses: appleboy/ssh-action@v1.0.3
