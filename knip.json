@@ -6,7 +6,7 @@
   "ignoreDependencies": [],
   "ignoreExportsUsedInFile": true,
   "rules": {
-    "unlisted": "warn",
-    "exports": "warn"
+    "unlisted": "error",
+    "exports": "error"
   }
 }
