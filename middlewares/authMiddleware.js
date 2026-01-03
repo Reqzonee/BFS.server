@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-exports.authMiddleware = (roles) => {
+export const authMiddleware = (roles) => {
   return (req, res, next) => {
     const authHeader = req.headers.authorization;
 
@@ -34,7 +34,7 @@ exports.authMiddleware = (roles) => {
         );
 
         if (verified) break;
-      } catch (error) {
+      } catch {
         continue;
       }
     }

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const EmployeeRolesSchema = new mongoose.Schema(
   {
@@ -58,4 +58,4 @@ const EmployeeRolesSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("EmployeeRoles", EmployeeRolesSchema);
+export default mongoose.model("EmployeeRoles", EmployeeRolesSchema);

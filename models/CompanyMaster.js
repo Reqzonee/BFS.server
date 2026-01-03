@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const CompanyMasterSchema = new mongoose.Schema(
   {
@@ -80,4 +80,4 @@ const CompanyMasterSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("CompanyMaster", CompanyMasterSchema);
+export default mongoose.model("CompanyMaster", CompanyMasterSchema);

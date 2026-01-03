@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const MenuGroupMasterSchema = new mongoose.Schema(
   {
@@ -27,4 +27,4 @@ const MenuGroupMasterSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("MenuGroupMaster", MenuGroupMasterSchema);
+export default mongoose.model("MenuGroupMaster", MenuGroupMasterSchema);

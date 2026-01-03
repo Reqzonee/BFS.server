@@ -1,11 +1,19 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const morgan = require("morgan");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-require("dotenv").config();
+import express from "express";
+import mongoose from "mongoose";
+import morgan from "morgan";
+import bodyParser from "body-parser";
+import cors from "cors";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import { setupSwagger } from "./config/swagger.js";
+
+// ES6 module equivalent of __dirname and __filename
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
 
 global.__basedir = __dirname;
 
@@ -41,7 +49,7 @@ function logError(error) {
       if (filedata) {
         try {
           writecontent = JSON.parse(filedata);
-        } catch (e) {
+        } catch {
           // If parsing fails, start with empty array
           writecontent = [];
         }
@@ -77,11 +85,12 @@ const dbURI = process.env.DATABASE;
 mongoose
   .connect(dbURI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true, // Important for proper server selection and TLS
-    serverSelectionTimeoutMS: 10000, // 10 seconds timeout for initial connection
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000,
   })
   .then(() => {
     console.log("✅ DB connected");
+    databasestatus = "Connected";
   })
   .catch((err) => {
     console.error("❌ DB Connection Error =>", err);
@@ -101,21 +110,38 @@ mongoose.connection.on("reconnected", () => {
   console.log("♻️ DB reconnected!");
 });
 
-// autoIncrement.initialize(mongoose.connection);
-
-//middlewares
+// middlewares
 app.use(morgan("dev"));
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static("files"));
 
-//routes
-// app.use("/api", authRoutes);
-fs.readdirSync("./routes").map((r) =>
-  app.use("/api", require("./routes/" + r)),
-);
+// Setup Swagger documentation
+setupSwagger(app);
 
-// app.use("/api", require("./routes/ToDoTask"));
+// ============ V1 ROUTES ============
+// Import v1 routes
+import companiesRoutes from "./routes/v1/companies.routes.js";
+import currenciesRoutes from "./routes/v1/currencies.routes.js";
+import departmentsRoutes from "./routes/v1/departments.routes.js";
+import emailsRoutes from "./routes/v1/emails.routes.js";
+import employeeRolesRoutes from "./routes/v1/employeeRoles.routes.js";
+import employeesRoutes from "./routes/v1/employees.routes.js";
+import locationsRoutes from "./routes/v1/locations.routes.js";
+import menusRoutes from "./routes/v1/menus.routes.js";
+import rolesRoutes from "./routes/v1/roles.routes.js";
+
+app.use("/api/v1", companiesRoutes);
+app.use("/api/v1", currenciesRoutes);
+app.use("/api/v1", departmentsRoutes);
+app.use("/api/v1", emailsRoutes);
+app.use("/api/v1", employeeRolesRoutes);
+app.use("/api/v1", employeesRoutes);
+app.use("/api/v1", locationsRoutes);
+app.use("/api/v1", menusRoutes);
+app.use("/api/v1", rolesRoutes);
+
+console.log("✅ V1 API routes loaded");
 
 app.get("/api", (req, res) => {
   res.json({
@@ -136,7 +162,8 @@ app.get("/error", (req, res) => {
   res.test("hit the api button. v-24.01.2024.");
 });
 
-app.use(async (err, req, res, next) => {
+// eslint-disable-next-line no-unused-vars
+app.use(async (err, _req, res, _next) => {
   let filedata = {
     datetime: new Date(),
     message: err?.message,
@@ -159,7 +186,9 @@ app.use(async (err, req, res, next) => {
         console.log("Saved!");
       },
     );
-  } catch (error) {}
+  } catch {
+    // Error logging failed, continue to response
+  }
 
   return res.status(500).json({
     success: false,

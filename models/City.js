@@ -1,5 +1,6 @@
-const mongoose = require("mongoose");
-const { Schema } = require("mongoose");
+import mongoose from "mongoose";
+
+const { Schema } = mongoose;
 
 const CitySchema = new mongoose.Schema(
   {
@@ -9,7 +10,6 @@ const CitySchema = new mongoose.Schema(
     },
     cityCode: {
       type: String,
-      // required: true,
     },
     stateId: {
       type: Schema.Types.ObjectId,
@@ -30,4 +30,4 @@ const CitySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("City", CitySchema);
+export default mongoose.model("City", CitySchema);
