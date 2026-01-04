@@ -290,4 +290,352 @@ router.post("/auth/employee/login", loginEmployee);
  */
 router.get("/auth/me", authMiddleware(["ADMIN", "EMPLOYEE"]), getCurrentUser);
 
+// ============ LOGIN ATTEMPT LIMITATION ROUTES ============
+import authService from "../../services/authService.js";
+
+/**
+ * @swagger
+ * /auth/login-status/{userId}:
+ *   get:
+ *     summary: Get login attempt status for a user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to check status
+ *     responses:
+ *       200:
+ *         description: Login attempt status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 attemptCount:
+ *                   type: number
+ *                 isLocked:
+ *                   type: boolean
+ *                 lockUntil:
+ *                   type: string
+ *                   format: date-time
+ *                 remainingTime:
+ *                   type: number
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/auth/login-status/:userId",
+  authMiddleware(["ADMIN", "EMPLOYEE"]),
+  async (req, res) => {
+    try {
+      const status = await authService.getLoginAttemptStatus(req.params.userId);
+      res.status(200).json({
+        isOk: true,
+        data: status,
+        status: 200,
+      });
+    } catch (error) {
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /auth/login-status-by-email:
+ *   post:
+ *     summary: Get login attempt status by email (for login form)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login attempt status
+ */
+router.post("/auth/login-status-by-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        isOk: false,
+        message: "Email is required",
+        status: 400,
+      });
+    }
+    const status = await authService.getLoginAttemptStatus(null, email);
+    res.status(200).json({
+      isOk: true,
+      data: status,
+      status: 200,
+    });
+  } catch (error) {
+    res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /admin/auth/reset-attempts:
+ *   post:
+ *     summary: Admin - Reset login attempts for a user
+ *     tags: [Admin - Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Attempts reset successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+  "/admin/auth/reset-attempts",
+  authMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({
+          isOk: false,
+          message: "userId is required",
+          status: 400,
+        });
+      }
+
+      await authService.resetLoginAttempts(userId);
+      const status = await authService.getLoginAttemptStatus(userId);
+
+      res.status(200).json({
+        isOk: true,
+        message: "Login attempts reset successfully",
+        data: status,
+        status: 200,
+      });
+    } catch (error) {
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /admin/auth/unlock:
+ *   post:
+ *     summary: Admin - Unlock a locked user account
+ *     tags: [Admin - Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account unlocked successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+  "/admin/auth/unlock",
+  authMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({
+          isOk: false,
+          message: "userId is required",
+          status: 400,
+        });
+      }
+
+      await authService.unlockAccount(userId);
+      const status = await authService.getLoginAttemptStatus(userId);
+
+      res.status(200).json({
+        isOk: true,
+        message: "Account unlocked successfully",
+        data: status,
+        status: 200,
+      });
+    } catch (error) {
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /admin/auth/login-attempts:
+ *   post:
+ *     summary: Admin - List all login attempts with pagination
+ *     tags: [Admin - Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               skip:
+ *                 type: number
+ *               per_page:
+ *                 type: number
+ *               match:
+ *                 type: string
+ *               sorton:
+ *                 type: string
+ *               sortdir:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: List of login attempts
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+  "/admin/auth/login-attempts",
+  authMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { skip = 0, per_page = 10, match, sorton, sortdir } = req.body;
+      const LoginAttempt = (await import("../../models/LoginAttempt.js")).default;
+
+      // Build match query
+      let matchQuery = {};
+      if (match) {
+        matchQuery = {
+          $or: [
+            { userEmail: { $regex: match, $options: "i" } },
+            { ipAddress: { $regex: match, $options: "i" } },
+            { "locationCoordinates.city": { $regex: match, $options: "i" } },
+            { "locationCoordinates.country": { $regex: match, $options: "i" } },
+          ],
+        };
+      }
+
+      // Build sort query
+      let sortQuery = { lastLoginAttempt: -1 }; // Default: most recent first
+      if (sorton && sortdir) {
+        sortQuery = { [sorton]: sortdir === "desc" ? -1 : 1 };
+      }
+
+      // Get total count
+      const totalCount = await LoginAttempt.countDocuments(matchQuery);
+
+      // Get paginated data - first get raw data without populate
+      const attempts = await LoginAttempt.find(matchQuery)
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(per_page)
+        .lean();
+
+      // Import models for lookup
+      const Employee = (await import("../../models/Employee.js")).default;
+      const CompanyMaster = (await import("../../models/CompanyMaster.js")).default;
+
+      // Format the response with proper user lookup
+      const formattedAttempts = await Promise.all(attempts.map(async (attempt) => {
+        // Try to find user in Employee collection first, then CompanyMaster
+        let employeeName = "Unknown";
+        let foundUser = null;
+
+        if (attempt.userId) {
+          foundUser = await Employee.findById(attempt.userId).select("employeeName").lean();
+          if (foundUser) {
+            employeeName = foundUser.employeeName || "Unknown";
+          } else {
+            // Try CompanyMaster
+            const company = await CompanyMaster.findById(attempt.userId).select("companyName email").lean();
+            if (company) {
+              employeeName = company.companyName || company.email || "Admin";
+            }
+          }
+        }
+
+        return {
+          _id: attempt._id,
+          userId: attempt.userId, // This is the raw ObjectId, not populated
+          employeeName: employeeName,
+          userEmail: attempt.userEmail,
+          attemptCount: attempt.attemptCount,
+          isLocked: attempt.isLocked,
+          lockUntil: attempt.lockUntil,
+          lastLoginAttempt: attempt.lastLoginAttempt,
+          lastLoggedIn: attempt.lastLoggedIn,
+          ipAddress: attempt.ipAddress,
+          city: attempt.locationCoordinates?.city || "-",
+          country: attempt.locationCoordinates?.country || "-",
+          latitude: attempt.locationCoordinates?.latitude || null,
+          longitude: attempt.locationCoordinates?.longitude || null,
+          createdAt: attempt.createdAt,
+          updatedAt: attempt.updatedAt,
+        };
+      }));
+
+      res.status(200).json({
+        isOk: true,
+        data: [
+          {
+            count: totalCount,
+            data: formattedAttempts,
+          },
+        ],
+        status: 200,
+      });
+    } catch (error) {
+      console.error("Error fetching login attempts:", error);
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
 export default router;
+

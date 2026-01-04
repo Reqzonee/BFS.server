@@ -3,6 +3,7 @@ import CompanyMaster from "../../models/CompanyMaster.js";
 import { generateToken } from "../../utils/generateToken.js";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import authService from "../../services/authService.js";
 
 export const createEmployee = async (req, res) => {
   try {
@@ -366,6 +367,7 @@ export const listAllEmployeesByDepartment = async (req, res) => {
 export const loginEmployee = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "unknown";
 
     const employee = await EmployeeModels.findOne({ emailOffice: email })
       .populate("departmentId")
@@ -376,22 +378,67 @@ export const loginEmployee = async (req, res) => {
       .exec();
 
     if (!employee) {
-      return res.status(400).json({
+      return res.status(401).json({
         isOk: false,
-        message: "Employee not found",
-        status: 400,
+        message: "Invalid credentials",
+        status: 401,
       });
     }
 
+    // Check if account is locked BEFORE password verification
+    const isLocked = await authService.isAccountLocked(employee._id, email);
+    if (isLocked) {
+      const status = await authService.getLoginAttemptStatus(employee._id, email);
+      return res.status(423).json({
+        isOk: false,
+        message: "Account locked due to multiple failed login attempts",
+        error: "Account locked",
+        lockedUntil: status.lockUntil,
+        remainingTimeMs: status.remainingTime,
+        status: 423,
+      });
+    }
+
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, employee.password);
 
     if (!isPasswordValid) {
-      return res.status(400).json({
+      // Record failed attempt
+      const attemptResult = await authService.recordFailedAttempt(
+        employee._id,
+        email,
+        ipAddress
+      );
+
+      // Check if account just got locked
+      if (attemptResult.isLocked) {
+        return res.status(423).json({
+          isOk: false,
+          message: "Account locked due to multiple failed login attempts",
+          error: "Account locked",
+          lockedUntil: attemptResult.lockUntil,
+          remainingTimeMs: 24 * 60 * 60 * 1000, // 24 hours
+          status: 423,
+        });
+      }
+
+      // Return 401 with remaining attempts
+      const warningMessage = attemptResult.attemptsRemaining <= 1
+        ? "Warning: One more failed attempt will lock your account"
+        : null;
+
+      return res.status(401).json({
         isOk: false,
-        message: "Invalid password",
-        status: 400,
+        message: "Invalid credentials",
+        error: "Invalid credentials",
+        attemptsRemaining: attemptResult.attemptsRemaining,
+        warning: warningMessage,
+        status: 401,
       });
     }
+
+    // Successful login - record it and reset attempt count
+    await authService.recordSuccessfulLogin(employee._id, email);
 
     const token = await generateToken(employee._id, "EMPLOYEE");
 
