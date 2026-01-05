@@ -12,6 +12,17 @@ import {
   getCurrentUser,
   resetPassword,
 } from "../../controllers/v1/employee.controller.js";
+// ============ SECURITY IMPORTS ============
+import { authRateLimiter, searchRateLimiter, passwordResetRateLimiter } from "../../middlewares/rateLimiter.js";
+import {
+  loginValidation,
+  searchValidation,
+  createEmployeeValidation,
+  allowOnlyFields,
+  allowedLoginFields,
+  allowedEmployeeFields,
+  allowedSearchFields
+} from "../../middlewares/inputValidator.js";
 
 const router = express.Router();
 
@@ -271,8 +282,17 @@ router.post(
  *               $ref: '#/components/schemas/LoginResponse'
  *       401:
  *         description: Invalid credentials
+ *       429:
+ *         description: Too many login attempts
  */
-router.post("/auth/employee/login", loginEmployee);
+// SECURITY: Rate limit + field whitelist + input validation on login
+router.post(
+  "/auth/employee/login",
+  authRateLimiter,                          // Strict rate limiting (5 attempts/15 min)
+  allowOnlyFields(allowedLoginFields),      // Reject unexpected fields
+  loginValidation,                          // Validate & sanitize input
+  loginEmployee
+);
 
 /**
  * @swagger
