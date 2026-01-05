@@ -1,6 +1,5 @@
 import express from "express";
 import fs from "fs";
-import multer from "multer";
 import {
   createCompanyMaster,
   updateCompanyMaster,
@@ -17,43 +16,36 @@ import {
   allowedLoginFields,
   allowedCompanyFields
 } from "../../middlewares/inputValidator.js";
+import { createSecureMultiUpload } from "../../middlewares/secureUpload.js";
 
 const router = express.Router();
 
+// ============ SECURE FILE UPLOAD CONFIGURATION ============
 const logoUploadFolder = "uploads/companyMaster";
 
+// Ensure upload directory exists
 if (!fs.existsSync(logoUploadFolder)) {
   fs.mkdirSync(logoUploadFolder, { recursive: true });
 }
 
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, logoUploadFolder);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "_" + file.originalname);
-  },
-});
-
-const upload = multer({
-  storage: multerStorage,
-  fileFilter: (req, file, cb) => {
-    if (file.fieldname === "logo") {
-      if (file.mimetype.startsWith("image/")) {
-        cb(null, true);
-      } else {
-        cb(new Error("Only image files are allowed for logo!"), false);
-      }
-    } else if (file.fieldname === "favicon") {
-      if (file.mimetype.startsWith("image/")) {
-        cb(null, true);
-      } else {
-        cb(new Error("Only image files are allowed for favicon!"), false);
-      }
-    } else {
-      cb(new Error("Unknown field name!"), false);
-    }
-  },
+/**
+ * Secure upload middleware for company logo and favicon
+ * Features:
+ * - Magic byte validation (file-type library)
+ * - Double extension attack prevention
+ * - WebP compression for smaller file sizes
+ * - UUID-based secure filenames
+ * - File size limits (5MB per file)
+ */
+const secureCompanyUpload = createSecureMultiUpload({
+  destination: logoUploadFolder,
+  fields: [
+    { name: 'logo', maxCount: 1 },
+    { name: 'favicon', maxCount: 1 },
+  ],
+  maxSize: 5 * 1024 * 1024, // 5MB
+  compress: true,
+  quality: 85,
 });
 
 /**
@@ -88,13 +80,16 @@ const upload = multer({
  *     responses:
  *       200:
  *         description: Company created successfully
+ *       400:
+ *         description: Validation error or invalid file type
+ *       429:
+ *         description: Upload rate limit exceeded
  */
+// SECURITY: Rate limit + secure upload with validation
 router.post(
   "/companies",
-  upload.fields([
-    { name: "logo", maxCount: 1 },
-    { name: "favicon", maxCount: 1 },
-  ]),
+  uploadRateLimiter,        // Rate limit uploads (10/hour)
+  secureCompanyUpload,      // Secure file validation & compression
   createCompanyMaster,
 );
 
@@ -139,14 +134,15 @@ router.post(
  *         description: Company updated successfully
  *       404:
  *         description: Company not found
+ *       400:
+ *         description: Validation error or invalid file type
  */
+// SECURITY: Auth + rate limit + secure upload
 router.put(
   "/companies/:id",
   authMiddleware(["ADMIN"]),
-  upload.fields([
-    { name: "logo", maxCount: 1 },
-    { name: "favicon", maxCount: 1 },
-  ]),
+  uploadRateLimiter,         // Rate limit uploads
+  secureCompanyUpload,       // Secure file validation & compression
   updateCompanyMaster,
 );
 

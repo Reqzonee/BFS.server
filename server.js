@@ -168,6 +168,7 @@ import employeesRoutes from "./routes/v1/employees.routes.js";
 import locationsRoutes from "./routes/v1/locations.routes.js";
 import menusRoutes from "./routes/v1/menus.routes.js";
 import rolesRoutes from "./routes/v1/roles.routes.js";
+import securityRoutes from "./routes/v1/security.routes.js";
 
 app.use("/api/v1", companiesRoutes);
 app.use("/api/v1", currenciesRoutes);
@@ -178,6 +179,7 @@ app.use("/api/v1", employeesRoutes);
 app.use("/api/v1", locationsRoutes);
 app.use("/api/v1", menusRoutes);
 app.use("/api/v1", rolesRoutes);
+app.use("/api/v1", securityRoutes);
 
 console.log("✅ V1 API routes loaded");
 
