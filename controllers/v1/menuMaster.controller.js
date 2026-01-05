@@ -22,6 +22,7 @@ export const createMenuMaster = async (req, res) => {
       isActive,
       isParent: isParent || false,
       parentMenu: parentMenu || null,
+      icon: req.body.icon || "",
     });
 
     res.status(201).json({
@@ -81,6 +82,7 @@ export const updateMenuMaster = async (req, res) => {
         isActive,
         isParent: isParent || false,
         parentMenu: parentMenu || null,
+        icon: req.body.icon || "",
       },
       { new: true },
     );
@@ -179,6 +181,7 @@ export const listMenuMasterByParams = async (req, res) => {
           menuUrl: 1,
           sequence: 1,
           isActive: 1,
+          icon: 1,
         },
       },
       {
@@ -293,6 +296,7 @@ export const getMenuByGroups = async (req, res) => {
           url: menu.menuUrl || "#",
           sequence: menu.sequence,
           isParent: !!hasChildren,
+          icon: menu.icon,
         };
 
         // If this menu has children, recursively get them
@@ -316,6 +320,7 @@ export const getMenuByGroups = async (req, res) => {
           sequence: group.sequence,
           isLink: true,
           url: group.menuUrl,
+          icon: group.icon,
           menus: [], // Empty menus for direct link groups
         });
         continue; // Skip the rest of the loop for this group
@@ -344,6 +349,7 @@ export const getMenuByGroups = async (req, res) => {
           url: menu.menuUrl,
           sequence: menu.sequence,
           isParent: !!hasChildren,
+          icon: menu.icon,
         };
 
         // If this menu has children, recursively get them
@@ -360,6 +366,7 @@ export const getMenuByGroups = async (req, res) => {
           groupName: group.menuGroupName,
           sequence: group.sequence,
           isLink: false,
+          icon: group.icon,
           menus: processedMenus,
         });
       }

@@ -23,6 +23,10 @@ const MenuGroupMasterSchema = new mongoose.Schema(
       type: String,
       default: "#",
     },
+    icon: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true },
 );

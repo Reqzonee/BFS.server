@@ -33,6 +33,10 @@ const MenuMasterSchema = new mongoose.Schema(
       ref: "MenuMaster",
       default: null,
     },
+    icon: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true },
 );

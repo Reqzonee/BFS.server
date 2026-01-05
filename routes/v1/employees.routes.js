@@ -12,6 +12,17 @@ import {
   getCurrentUser,
   resetPassword,
 } from "../../controllers/v1/employee.controller.js";
+// ============ SECURITY IMPORTS ============
+import { authRateLimiter, searchRateLimiter, passwordResetRateLimiter } from "../../middlewares/rateLimiter.js";
+import {
+  loginValidation,
+  searchValidation,
+  createEmployeeValidation,
+  allowOnlyFields,
+  allowedLoginFields,
+  allowedEmployeeFields,
+  allowedSearchFields
+} from "../../middlewares/inputValidator.js";
 
 const router = express.Router();
 
@@ -271,8 +282,17 @@ router.post(
  *               $ref: '#/components/schemas/LoginResponse'
  *       401:
  *         description: Invalid credentials
+ *       429:
+ *         description: Too many login attempts
  */
-router.post("/auth/employee/login", loginEmployee);
+// SECURITY: Rate limit + field whitelist + input validation on login
+router.post(
+  "/auth/employee/login",
+  authRateLimiter,                          // Strict rate limiting (5 attempts/15 min)
+  allowOnlyFields(allowedLoginFields),      // Reject unexpected fields
+  loginValidation,                          // Validate & sanitize input
+  loginEmployee
+);
 
 /**
  * @swagger
@@ -582,16 +602,19 @@ router.post(
         // Try to find user in Employee collection first, then CompanyMaster
         let employeeName = "Unknown";
         let foundUser = null;
+        let isActive = true; // Default to true if user not found
 
         if (attempt.userId) {
-          foundUser = await Employee.findById(attempt.userId).select("employeeName").lean();
+          foundUser = await Employee.findById(attempt.userId).select("employeeName isActive").lean();
           if (foundUser) {
             employeeName = foundUser.employeeName || "Unknown";
+            isActive = foundUser.isActive;
           } else {
             // Try CompanyMaster
-            const company = await CompanyMaster.findById(attempt.userId).select("companyName email").lean();
+            const company = await CompanyMaster.findById(attempt.userId).select("companyName email isActive").lean();
             if (company) {
               employeeName = company.companyName || company.email || "Admin";
+              isActive = company.isActive;
             }
           }
         }
@@ -611,6 +634,7 @@ router.post(
           country: attempt.locationCoordinates?.country || "-",
           latitude: attempt.locationCoordinates?.latitude || null,
           longitude: attempt.locationCoordinates?.longitude || null,
+          isActive: isActive,
           createdAt: attempt.createdAt,
           updatedAt: attempt.updatedAt,
         };
@@ -628,6 +652,154 @@ router.post(
       });
     } catch (error) {
       console.error("Error fetching login attempts:", error);
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /admin/auth/block:
+ *   post:
+ *     summary: Admin - Block a user account
+ *     tags: [Admin - Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account blocked successfully
+ *       404:
+ *         description: User not found
+ */
+router.post(
+  "/admin/auth/block",
+  authMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({
+          isOk: false,
+          message: "userId is required",
+          status: 400,
+        });
+      }
+
+      const Employee = (await import("../../models/Employee.js")).default;
+      const CompanyMaster = (await import("../../models/CompanyMaster.js")).default;
+
+      // Try to find and block in Employee first
+      let user = await Employee.findByIdAndUpdate(userId, { isActive: false });
+      let userType = "Employee";
+
+      // If not found, try CompanyMaster
+      if (!user) {
+        user = await CompanyMaster.findByIdAndUpdate(userId, { isActive: false });
+        userType = "Company";
+      }
+
+      if (!user) {
+        return res.status(404).json({
+          isOk: false,
+          message: "User not found",
+          status: 404,
+        });
+      }
+
+      res.status(200).json({
+        isOk: true,
+        message: `${userType} account blocked successfully`,
+        status: 200,
+      });
+    } catch (error) {
+      console.error("Error blocking account:", error);
+      res.status(500).json({
+        isOk: false,
+        message: error.message,
+        status: 500,
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /admin/auth/unblock:
+ *   post:
+ *     summary: Admin - Unblock a user account
+ *     tags: [Admin - Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account unblocked successfully
+ *       404:
+ *         description: User not found
+ */
+router.post(
+  "/admin/auth/unblock",
+  authMiddleware(["ADMIN"]),
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({
+          isOk: false,
+          message: "userId is required",
+          status: 400,
+        });
+      }
+
+      const Employee = (await import("../../models/Employee.js")).default;
+      const CompanyMaster = (await import("../../models/CompanyMaster.js")).default;
+
+      // Try to find and unblock in Employee first
+      let user = await Employee.findByIdAndUpdate(userId, { isActive: true });
+      let userType = "Employee";
+
+      // If not found, try CompanyMaster
+      if (!user) {
+        user = await CompanyMaster.findByIdAndUpdate(userId, { isActive: true });
+        userType = "Company";
+      }
+
+      if (!user) {
+        return res.status(404).json({
+          isOk: false,
+          message: "User not found",
+          status: 404,
+        });
+      }
+
+      res.status(200).json({
+        isOk: true,
+        message: `${userType} account unblocked successfully`,
+        status: 200,
+      });
+    } catch (error) {
+      console.error("Error unblocking account:", error);
       res.status(500).json({
         isOk: false,
         message: error.message,
