@@ -11,6 +11,7 @@ export const createMenuGroup = async (req, res) => {
       isActive,
       isLink: isLink || false,
       menuUrl: isLink ? menuUrl : "#",
+      icon: req.body.icon || "",
     });
 
     res.status(201).json({
@@ -82,6 +83,7 @@ export const updateMenuGroup = async (req, res) => {
         isActive,
         isLink: isLink || false,
         menuUrl: isLink ? menuUrl : "#",
+        icon: req.body.icon || "",
       },
       { new: true },
     );
