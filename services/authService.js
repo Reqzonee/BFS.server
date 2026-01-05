@@ -64,13 +64,16 @@ const getLocationFromIP = (ipAddress) => {
  */
 const recordFailedAttempt = async (userId, userEmail, ipAddress, clientLocation = null) => {
     try {
-        // Use client-provided location if available, otherwise fall back to IP-based lookup
+        // Use client-provided location if available (exact GPS coordinates)
+        // Otherwise fall back to IP-based geolocation lookup
         let location;
-        if (clientLocation && (clientLocation.latitude || clientLocation.longitude)) {
+        if (clientLocation && (clientLocation.latitude !== null || clientLocation.longitude !== null)) {
+            // Store exact GPS coordinates from the user's device
+            // Set city/country to null so frontend will show the coordinates with Google Maps link
             location = {
                 latitude: clientLocation.latitude,
                 longitude: clientLocation.longitude,
-                city: "Client Provided",
+                city: null,     // null indicates we have exact coordinates, not an IP lookup
                 country: null,
             };
         } else {
@@ -204,13 +207,16 @@ const isAccountLocked = async (userId, email = null) => {
  */
 const recordSuccessfulLogin = async (userId, userEmail, ipAddress = null, clientLocation = null) => {
     try {
-        // Determine location to store
+        // Use client-provided location if available (exact GPS coordinates)
+        // Otherwise fall back to IP-based geolocation lookup
         let location;
-        if (clientLocation && (clientLocation.latitude || clientLocation.longitude)) {
+        if (clientLocation && (clientLocation.latitude !== null || clientLocation.longitude !== null)) {
+            // Store exact GPS coordinates from the user's device
+            // Set city/country to null so frontend will show the coordinates with Google Maps link
             location = {
                 latitude: clientLocation.latitude,
                 longitude: clientLocation.longitude,
-                city: "Client Provided",
+                city: null,     // null indicates we have exact coordinates, not an IP lookup
                 country: null,
             };
         } else if (ipAddress) {
