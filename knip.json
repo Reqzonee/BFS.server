@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["server.js", "routes/*.js", "controllers/*.js"],
+  "entry": ["server.js", "routes/**/*.js", "controllers/**/*.js"],
   "project": ["**/*.js"],
   "ignore": ["node_modules/**"],
   "ignoreDependencies": [],
