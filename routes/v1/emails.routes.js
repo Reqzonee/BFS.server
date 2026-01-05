@@ -24,43 +24,36 @@ import {
   listEmailTemplateByParams,
   listAllEmailTemplates,
 } from "../../controllers/v1/emailTemplate.controller.js";
-import multer from "multer";
 import fs from "fs";
-import path from "path";
+// ============ SECURITY IMPORTS ============
+import { uploadRateLimiter } from "../../middlewares/rateLimiter.js";
+import { createSecureImageUpload } from "../../middlewares/secureUpload.js";
 
 const router = express.Router();
 
+// ============ SECURE FILE UPLOAD CONFIGURATION ============
 const descriptionUploadDir = "uploads/cms/email-template/signature";
 
+// Ensure upload directory exists
 if (!fs.existsSync(descriptionUploadDir)) {
   fs.mkdirSync(descriptionUploadDir, { recursive: true });
 }
 
-const descriptionImageStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (!fs.existsSync(descriptionUploadDir)) {
-      fs.mkdirSync(descriptionUploadDir, { recursive: true });
-    }
-    cb(null, descriptionUploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "_" + file.originalname);
-  },
-});
-
-const uploadDescription = multer({
-  storage: descriptionImageStorage,
-  fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase(),
-    );
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error("Only images (jpeg, jpg, png) are allowed!"));
-  },
+/**
+ * Secure upload middleware for signature images
+ * Features:
+ * - Magic byte validation (file-type library)
+ * - Double extension attack prevention
+ * - WebP compression for smaller file sizes
+ * - UUID-based secure filenames
+ * - File size limits (2MB)
+ */
+const secureSignatureUpload = createSecureImageUpload({
+  destination: descriptionUploadDir,
+  fieldName: 'signatureImage',
+  maxSize: 2 * 1024 * 1024, // 2MB
+  compress: true,
+  quality: 85,
 });
 
 // ============ EMAIL SETUP ENDPOINTS ============
@@ -617,12 +610,16 @@ router.post(
  *                 message:
  *                   type: string
  *       400:
- *         description: No file uploaded
+ *         description: No file uploaded or validation failed
+ *       429:
+ *         description: Upload rate limit exceeded
  */
+// SECURITY: Auth + rate limit + secure upload with validation
 router.post(
   "/email-templates/upload-signature",
   authMiddleware(["ADMIN", "EMPLOYEE"]),
-  uploadDescription.single("signatureImage"),
+  uploadRateLimiter,          // Rate limit uploads (10/hour)
+  secureSignatureUpload,      // Secure file validation & compression
   (req, res) => {
     if (!req.file) {
       return res.status(400).json({
@@ -640,7 +637,10 @@ router.post(
       data: {
         link: imageUrl,
       },
-      message: "Signature image uploaded successfully",
+      message: "Signature image uploaded and compressed successfully",
+      originalSize: req.file.originalSize,
+      compressedSize: req.file.size,
+      compressionRatio: req.file.compressionRatio,
     });
   },
 );

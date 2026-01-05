@@ -4,6 +4,7 @@ import { generateToken } from "../../utils/generateToken.js";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import path from "path";
+import authService from "../../services/authService.js";
 
 export const createCompanyMaster = async (req, res) => {
   try {
@@ -133,71 +134,157 @@ export const updateCompanyMaster = async (req, res) => {
 };
 
 export const loginCompany = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password, locationConsent, ipConsent, clientIP, clientLatitude, clientLongitude } = req.body;
 
-  let user = null;
-  let token = null;
+    // Get IP address: prefer client-provided (from frontend), fallback to server-detected
+    const ipAddress = clientIP ||
+      req.headers["x-client-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.ip ||
+      req.connection?.remoteAddress ||
+      "unknown";
 
-  const companyMaster = await CompanyMasterModels.findOne({
-    email,
-    isActive: true,
-  })
-    .populate("countryId")
-    .populate("stateId")
-    .populate("cityId")
-    .exec();
+    // Get client location from headers/body (sent by frontend after user consent)
+    const clientLocation = {
+      latitude: clientLatitude || req.headers["x-client-latitude"] || null,
+      longitude: clientLongitude || req.headers["x-client-longitude"] || null,
+    };
 
-  const employee = await EmployeeModels.findOne({
-    emailOffice: email,
-    isActive: true,
-  })
-    .populate("departmentId")
-    .populate("stateId")
-    .populate("cityId")
-    .exec();
+    // Log the received security information
+    console.log(`Login attempt from IP: ${ipAddress}, Location: ${JSON.stringify(clientLocation)}`);
 
-  if (companyMaster) {
-    user = companyMaster;
-    token = await generateToken(companyMaster._id, "ADMIN");
-  }
+    // Validate consent checkboxes
+    if (!locationConsent || !ipConsent) {
+      return res.status(400).json({
+        isOk: false,
+        message: "Please accept both location and IP address tracking consent to continue",
+        error: "Consent required",
+        status: 400,
+      });
+    }
 
-  if (employee) {
-    user = employee;
-    token = await generateToken(employee._id, "EMPLOYEE");
-  }
+    let user = null;
+    let token = null;
+    let role = null;
+    let userId = null;
 
-  console.log(user);
+    const companyMaster = await CompanyMasterModels.findOne({
+      email,
+      isActive: true,
+    })
+      .populate("countryId")
+      .populate("stateId")
+      .populate("cityId")
+      .exec();
 
-  if (!user) {
-    return res.status(404).json({
+    const employee = await EmployeeModels.findOne({
+      emailOffice: email,
+      isActive: true,
+    })
+      .populate("departmentId")
+      .populate("stateId")
+      .populate("cityId")
+      .exec();
+
+    if (companyMaster) {
+      user = companyMaster;
+      userId = companyMaster._id;
+      role = "ADMIN";
+      token = await generateToken(companyMaster._id, "ADMIN");
+    } else if (employee) {
+      user = employee;
+      userId = employee._id;
+      role = "EMPLOYEE";
+      token = await generateToken(employee._id, "EMPLOYEE");
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        isOk: false,
+        message: "User not found",
+        status: 404,
+      });
+    }
+
+    // Check if account is locked BEFORE password verification
+    const isLocked = await authService.isAccountLocked(userId, email);
+    if (isLocked) {
+      const status = await authService.getLoginAttemptStatus(userId, email);
+      return res.status(423).json({
+        isOk: false,
+        message: "Account locked due to multiple failed login attempts",
+        error: "Account locked",
+        lockedUntil: status.lockUntil,
+        remainingTimeMs: status.remainingTime,
+        status: 423,
+      });
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordMatch) {
+      // Record failed attempt with client-provided location
+      const attemptResult = await authService.recordFailedAttempt(
+        userId,
+        email,
+        ipAddress,
+        clientLocation
+      );
+
+      // Check if account just got locked
+      if (attemptResult.isLocked) {
+        return res.status(423).json({
+          isOk: false,
+          message: "Account locked due to multiple failed login attempts",
+          error: "Account locked",
+          lockedUntil: attemptResult.lockUntil,
+          remainingTimeMs: 24 * 60 * 60 * 1000, // 24 hours
+          status: 423,
+        });
+      }
+
+      // Return 401 with remaining attempts
+      const warningMessage = attemptResult.attemptsRemaining <= 1
+        ? "Warning: One more failed attempt will lock your account"
+        : null;
+
+      return res.status(401).json({
+        isOk: false,
+        message: "Invalid email or password",
+        error: "Invalid credentials",
+        attemptsRemaining: attemptResult.attemptsRemaining,
+        warning: warningMessage,
+        status: 401,
+      });
+    }
+
+    // Successful login - record it and reset attempt count with IP and location
+    await authService.recordSuccessfulLogin(userId, email, ipAddress, clientLocation);
+
+    const company = await CompanyMasterModels.findOne({ isSuperAdmin: false });
+
+    const dataToSend = user.toObject ? user.toObject() : user;
+
+    if (employee && role === "EMPLOYEE") {
+      dataToSend.companyName = company ? company.companyName : "";
+    }
+
+    return res.status(200).json({
+      isOk: true,
+      message: "Login successful",
+      data: dataToSend,
+      token: token,
+      role: role,
+    });
+  } catch (error) {
+    console.error("Error in loginCompany:", error);
+    return res.status(500).json({
       isOk: false,
-      message: "User not found",
+      message: error.message,
+      status: 500,
     });
   }
-
-  const isPasswordMatch = await bcrypt.compare(password, user.password);
-
-  if (!isPasswordMatch) {
-    return res.status(400).json({
-      isOk: false,
-      message: "Invalid email or password",
-    });
-  }
-
-  const company = await CompanyMasterModels.findOne({ isSuperAdmin: false });
-
-  const dataToSend = user;
-
-  if (employee) {
-    dataToSend.companyName = company ? company.companyName : "";
-  }
-
-  return res.status(200).json({
-    isOk: true,
-    message: "Login successful",
-    data: dataToSend,
-    token: token,
-  });
 };
 
 export const getCompanyMasterById = async (req, res) => {

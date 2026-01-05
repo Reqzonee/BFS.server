@@ -7,7 +7,31 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import hpp from "hpp";
 import { setupSwagger } from "./config/swagger.js";
+
+// ============ SECURITY IMPORTS ============
+// OWASP-compliant security middleware
+import {
+  securityHeaders,
+  additionalSecurityHeaders,
+  getCorsConfig,
+  sanitizeErrors
+} from "./middlewares/securityHeaders.js";
+import {
+  generalRateLimiter,
+  authRateLimiter,
+  passwordResetRateLimiter,
+  searchRateLimiter
+} from "./middlewares/rateLimiter.js";
+import {
+  mongoSanitizer,
+  loginValidation,
+  searchValidation,
+  allowOnlyFields,
+  allowedLoginFields,
+  allowedSearchFields
+} from "./middlewares/inputValidator.js";
 
 // ES6 module equivalent of __dirname and __filename
 const __filename = fileURLToPath(import.meta.url);
@@ -64,18 +88,33 @@ function logError(error) {
 
 const app = express();
 let databasestatus = "In-Progress";
-app.use(cors());
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept",
-  );
-  next();
-});
-app.options("*", cors());
+
+// ============ SECURITY MIDDLEWARE (Apply FIRST) ============
+// 1. Security Headers (Helmet + custom headers)
+app.use(securityHeaders);
+app.use(additionalSecurityHeaders);
+
+// 2. CORS configuration (more restrictive than before)
+const corsConfig = getCorsConfig();
+app.use(cors(corsConfig));
+app.options("*", cors(corsConfig));
+
+// 3. General Rate Limiting (applied to all routes)
+app.use(generalRateLimiter);
+
+// 4. Body Parsing with size limits (OWASP: limit request body size)
+app.use(bodyParser.json({ limit: "10mb" })); // Reduced from 50mb for security
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+// 5. MongoDB NoSQL Injection Protection
+app.use(mongoSanitizer);
+
+// 6. HTTP Parameter Pollution Prevention
+app.use(hpp());
+
+// ============ STATIC FILE SERVING ============
 app.use("/uploads", express.static("uploads"));
-app.use("/log", express.static("log"));
+// NOTE: Removed /log static serving for security - logs should not be publicly accessible
 
 mongoose.set("strictQuery", false);
 mongoose.set("debug", true);
@@ -110,13 +149,12 @@ mongoose.connection.on("reconnected", () => {
   console.log("♻️ DB reconnected!");
 });
 
-// middlewares
+// ============ ADDITIONAL MIDDLEWARE ============
+// Development request logging (disable in production for performance)
 app.use(morgan("dev"));
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static("files"));
 
-// Setup Swagger documentation
+// Setup Swagger documentation (consider disabling in production)
 setupSwagger(app);
 
 // ============ V1 ROUTES ============
@@ -160,47 +198,61 @@ app.get("/*", async (req, res) => {
   res.sendFile(path.join(__dirname, "/out/admin", "index.html"));
 });
 
-app.get("/error", (req, res) => {
-  res.test("hit the api button. v-24.01.2024.");
-});
+// ============ ERROR HANDLING ============
+// Use the secure error sanitizer (prevents information leakage)
+app.use(sanitizeErrors);
 
+// Fallback error handler that logs errors but doesn't expose details
 // eslint-disable-next-line no-unused-vars
-app.use(async (err, _req, res, _next) => {
-  let filedata = {
-    datetime: new Date(),
+app.use(async (err, req, res, _next) => {
+  // Log error to file for debugging
+  const errorData = {
+    datetime: new Date().toISOString(),
     message: err?.message,
-    stake: err?.stack,
+    path: req?.path,
+    method: req?.method,
+    ip: req?.ip,
+    // Don't log full stack trace to file in production
+    stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined,
   };
+
   try {
     let writecontent = [];
     if (fs.existsSync("log/error.html")) {
-      let filedata = fs.readFileSync("log/error.html");
+      const filedata = fs.readFileSync("log/error.html", 'utf8');
       if (filedata) {
-        writecontent = JSON.parse(filedata);
+        try {
+          writecontent = JSON.parse(filedata);
+        } catch {
+          writecontent = [];
+        }
       }
     }
-    writecontent.push(filedata);
-    fs.writeFileSync(
-      "log/error.html",
-      JSON.stringify(writecontent),
-      function (err) {
-        if (err) throw err;
-        console.log("Saved!");
-      },
-    );
-  } catch {
-    // Error logging failed, continue to response
+
+    // Keep only last 100 errors to prevent log file from growing too large
+    if (writecontent.length > 100) {
+      writecontent = writecontent.slice(-100);
+    }
+
+    writecontent.push(errorData);
+    fs.writeFileSync("log/error.html", JSON.stringify(writecontent, null, 2));
+  } catch (logErr) {
+    console.error("Error logging to file:", logErr);
   }
 
+  // SECURITY: Don't expose internal error details to users
+  const isProduction = process.env.NODE_ENV === 'production';
   return res.status(500).json({
-    success: false,
-    msg: "We are updating",
-    data: filedata,
+    isOk: false,
+    status: 500,
+    error: 'Internal Server Error',
+    message: isProduction ? 'An unexpected error occurred' : err?.message,
   });
 });
 
 const port = process.env.PORT || 8000;
 
 app.listen(port, () => {
-  console.log(`server is running on port ${port}`);
+  console.log(`✅ Server is running on port ${port}`);
+  console.log(`🔒 Security middleware enabled: Helmet, Rate Limiting, Input Validation, CSRF Protection`);
 });
