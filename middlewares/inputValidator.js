@@ -11,8 +11,8 @@
  * https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
  */
 
-import { body, param, query, validationResult } from 'express-validator';
-import mongoSanitize from 'express-mongo-sanitize';
+const { body, param, query, validationResult } = require('express-validator');
+const mongoSanitize = require('express-mongo-sanitize');
 
 // ============ CONSTANTS ============
 
@@ -57,7 +57,7 @@ const sanitizeString = (value) => {
  * Create MongoDB sanitization middleware instance
  * Prevents NoSQL injection attacks
  */
-export const mongoSanitizer = mongoSanitize({
+const mongoSanitizer = mongoSanitize({
     replaceWith: '_',
     onSanitize: ({ req, key }) => {
         console.warn(`[SECURITY] Sanitized potentially malicious input in key: ${key}`);
@@ -73,7 +73,7 @@ export const mongoSanitizer = mongoSanitize({
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const handleValidationErrors = (req, res, next) => {
+const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -100,7 +100,7 @@ export const handleValidationErrors = (req, res, next) => {
 /**
  * Email validation chain
  */
-export const emailValidator = body('email')
+const emailValidator = body('email')
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email address')
@@ -110,7 +110,7 @@ export const emailValidator = body('email')
 /**
  * Password validation chain (for login - less strict)
  */
-export const passwordValidator = body('password')
+const passwordValidator = body('password')
     .notEmpty().withMessage('Password is required')
     .isLength({ min: MIN_LENGTHS.PASSWORD, max: MAX_LENGTHS.PASSWORD })
     .withMessage(`Password must be between ${MIN_LENGTHS.PASSWORD} and ${MAX_LENGTHS.PASSWORD} characters`);
@@ -118,7 +118,7 @@ export const passwordValidator = body('password')
 /**
  * Strong password validation chain (for registration/reset)
  */
-export const strongPasswordValidator = body('password')
+const strongPasswordValidator = body('password')
     .notEmpty().withMessage('Password is required')
     .isLength({ min: 8, max: MAX_LENGTHS.PASSWORD })
     .withMessage('Password must be at least 8 characters long')
@@ -128,7 +128,7 @@ export const strongPasswordValidator = body('password')
 /**
  * MongoDB ObjectId validation chain
  */
-export const mongoIdValidator = (fieldName, location = 'param') => {
+const mongoIdValidator = (fieldName, location = 'param') => {
     const validator = location === 'param' ? param : body;
     return validator(fieldName)
         .notEmpty().withMessage(`${fieldName} is required`)
@@ -138,7 +138,7 @@ export const mongoIdValidator = (fieldName, location = 'param') => {
 /**
  * Name field validation chain
  */
-export const nameValidator = (fieldName) => body(fieldName)
+const nameValidator = (fieldName) => body(fieldName)
     .trim()
     .notEmpty().withMessage(`${fieldName} is required`)
     .isLength({ min: MIN_LENGTHS.NAME, max: MAX_LENGTHS.NAME })
@@ -148,7 +148,7 @@ export const nameValidator = (fieldName) => body(fieldName)
 /**
  * Optional name field validation chain
  */
-export const optionalNameValidator = (fieldName) => body(fieldName)
+const optionalNameValidator = (fieldName) => body(fieldName)
     .optional()
     .trim()
     .isLength({ max: MAX_LENGTHS.NAME })
@@ -158,7 +158,7 @@ export const optionalNameValidator = (fieldName) => body(fieldName)
 /**
  * Phone number validation chain
  */
-export const phoneValidator = (fieldName = 'mobileNumber') => body(fieldName)
+const phoneValidator = (fieldName = 'mobileNumber') => body(fieldName)
     .optional()
     .trim()
     .isLength({ max: MAX_LENGTHS.PHONE })
@@ -169,7 +169,7 @@ export const phoneValidator = (fieldName = 'mobileNumber') => body(fieldName)
 /**
  * Boolean validation chain
  */
-export const booleanValidator = (fieldName) => body(fieldName)
+const booleanValidator = (fieldName) => body(fieldName)
     .optional()
     .isBoolean().withMessage(`${fieldName} must be a boolean value`)
     .toBoolean();
@@ -177,7 +177,7 @@ export const booleanValidator = (fieldName) => body(fieldName)
 /**
  * Pagination validation chain
  */
-export const paginationValidators = [
+const paginationValidators = [
     body('skip')
         .optional()
         .isInt({ min: 0 }).withMessage('skip must be a non-negative integer')
@@ -207,7 +207,7 @@ export const paginationValidators = [
 /**
  * Login request validation
  */
-export const loginValidation = [
+const loginValidation = [
     emailValidator,
     passwordValidator,
     body('locationConsent')
@@ -232,7 +232,7 @@ export const loginValidation = [
 /**
  * Employee creation validation
  */
-export const createEmployeeValidation = [
+const createEmployeeValidation = [
     nameValidator('employeeName'),
     mongoIdValidator('departmentId', 'body'),
     mongoIdValidator('roleId', 'body'),
@@ -260,7 +260,7 @@ export const createEmployeeValidation = [
 /**
  * Company creation validation
  */
-export const createCompanyValidation = [
+const createCompanyValidation = [
     nameValidator('companyName'),
     emailValidator,
     strongPasswordValidator,
@@ -297,7 +297,7 @@ export const createCompanyValidation = [
 /**
  * OTP validation
  */
-export const otpValidation = [
+const otpValidation = [
     emailValidator,
     body('otp')
         .trim()
@@ -310,7 +310,7 @@ export const otpValidation = [
 /**
  * Password reset validation
  */
-export const passwordResetValidation = [
+const passwordResetValidation = [
     emailValidator,
     body('otp')
         .trim()
@@ -329,7 +329,7 @@ export const passwordResetValidation = [
 /**
  * Search/list validation
  */
-export const searchValidation = [
+const searchValidation = [
     ...paginationValidators,
     handleValidationErrors,
 ];
@@ -341,7 +341,7 @@ export const searchValidation = [
  * @param {string[]} allowedFields - Array of allowed field names
  * @returns {Function} Express middleware
  */
-export const allowOnlyFields = (allowedFields) => {
+const allowOnlyFields = (allowedFields) => {
     return (req, res, next) => {
         if (req.body && typeof req.body === 'object') {
             const bodyFields = Object.keys(req.body);
@@ -363,28 +363,28 @@ export const allowOnlyFields = (allowedFields) => {
 
 // ============ ALLOWED FIELDS FOR ENDPOINTS ============
 
-export const allowedLoginFields = [
+const allowedLoginFields = [
     'email', 'password', 'locationConsent', 'ipConsent',
     'clientIP', 'clientLatitude', 'clientLongitude'
 ];
 
-export const allowedEmployeeFields = [
+const allowedEmployeeFields = [
     'employeeName', 'departmentId', 'roleId', 'emailOffice',
     'mobileNumber', 'countryId', 'stateId', 'cityId',
     'address', 'password', 'isActive'
 ];
 
-export const allowedCompanyFields = [
+const allowedCompanyFields = [
     'companyName', 'email', 'password', 'mobileNumber',
     'gstNumber', 'countryId', 'stateId', 'cityId',
     'address', 'pincode', 'website', 'isActive', 'contactPersonName', 'contactNumber'
 ];
 
-export const allowedSearchFields = [
+const allowedSearchFields = [
     'skip', 'per_page', 'sorton', 'sortdir', 'match', 'isActive'
 ];
 
-export default {
+module.exports = {
     handleValidationErrors,
     mongoSanitizer,
     loginValidation,

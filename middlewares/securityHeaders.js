@@ -10,13 +10,13 @@
  * https://owasp.org/www-project-secure-headers/
  */
 
-import helmet from 'helmet';
+const helmet = require('helmet');
 
 /**
  * Configure Helmet security headers
  * @returns {Function} Helmet middleware with custom configuration
  */
-export const securityHeaders = helmet({
+const securityHeaders = helmet({
     // Content-Security-Policy: Helps prevent XSS attacks
     contentSecurityPolicy: {
         directives: {
@@ -70,6 +70,9 @@ export const securityHeaders = helmet({
 
     // Remove X-Powered-By header
     hidePoweredBy: true,
+
+    // Cross-Origin-Resource-Policy: Allow resources to be loaded by other origins (e.g. frontend on different port)
+    crossOriginResourcePolicy: { policy: "cross-origin" },
 });
 
 /**
@@ -78,7 +81,7 @@ export const securityHeaders = helmet({
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const additionalSecurityHeaders = (req, res, next) => {
+const additionalSecurityHeaders = (req, res, next) => {
     // Permissions-Policy: Control browser features
     res.setHeader('Permissions-Policy',
         'accelerometer=(), camera=(), geolocation=(self), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
@@ -100,7 +103,7 @@ export const additionalSecurityHeaders = (req, res, next) => {
  * @param {string[]} allowedOrigins - Array of allowed origins
  * @returns {Object} CORS configuration object
  */
-export const getCorsConfig = (allowedOrigins = []) => {
+const getCorsConfig = (allowedOrigins = []) => {
     const defaultOrigins = [
         'http://localhost:3000',
         'http://localhost:3001',
@@ -155,7 +158,7 @@ export const getCorsConfig = (allowedOrigins = []) => {
  * @param {number} limit - Size limit in bytes
  * @returns {Function} Express middleware
  */
-export const bodySizeLimit = (limit = 1024 * 1024) => { // Default 1MB
+const bodySizeLimit = (limit = 1024 * 1024) => { // Default 1MB
     return (req, res, next) => {
         const contentLength = parseInt(req.headers['content-length'] || '0', 10);
 
@@ -179,7 +182,7 @@ export const bodySizeLimit = (limit = 1024 * 1024) => { // Default 1MB
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
-export const sanitizeErrors = (err, req, res, next) => {
+const sanitizeErrors = (err, req, res, next) => {
     // Log the full error for debugging
     console.error('[ERROR]', {
         message: err.message,
@@ -228,7 +231,7 @@ export const sanitizeErrors = (err, req, res, next) => {
     });
 };
 
-export default {
+module.exports = {
     securityHeaders,
     additionalSecurityHeaders,
     getCorsConfig,

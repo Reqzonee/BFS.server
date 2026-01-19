@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const loginAttemptSchema = new mongoose.Schema(
     {
@@ -17,7 +17,6 @@ const loginAttemptSchema = new mongoose.Schema(
             type: Number,
             default: 0,
             min: 0,
-            max: 3,
         },
         isLocked: {
             type: Boolean,
@@ -59,4 +58,4 @@ loginAttemptSchema.index({ userId: 1, isLocked: 1 });
 
 const LoginAttempt = mongoose.model("LoginAttempt", loginAttemptSchema);
 
-export default LoginAttempt;
+module.exports = LoginAttempt;

@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
+const jwt = require("jsonwebtoken");
 
-export const authMiddleware = (roles) => {
+const authMiddleware = (roles) => {
   return (req, res, next) => {
     const authHeader = req.headers.authorization;
 
@@ -51,8 +51,49 @@ export const authMiddleware = (roles) => {
     req.user = {
       id: verified.id,
       role: verified.role,
+      companyId: verified.companyId
     };
 
     next();
   };
+};
+
+const requireSuperAdmin = async (req, res, next) => {
+  try {
+    const CompanyMasterModels = require("../models/CompanyMaster");
+
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: Super admin only",
+        error: "Forbidden",
+        status: 403,
+      });
+    }
+
+    const company = await CompanyMasterModels.findById(req.user.id);
+    if (!company || !company.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: Super admin only",
+        error: "Forbidden",
+        status: 403,
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error in requireSuperAdmin middleware", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+      status: 500,
+    });
+  }
+};
+
+module.exports = {
+  authMiddleware,
+  requireSuperAdmin
 };

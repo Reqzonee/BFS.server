@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const EmployeeSchema = new mongoose.Schema(
   {
@@ -7,13 +7,13 @@ const EmployeeSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    departmentId: {
+    storeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-      required: true,
+      ref: "StoreMaster",
+      default: null,
     },
     roleId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId, // Defines permissions (Store Admin vs Staff)
       ref: "RoleMaster",
       required: true,
     },
@@ -47,6 +47,11 @@ const EmployeeSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    pincode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     password: {
       type: String,
       required: true,
@@ -60,4 +65,4 @@ const EmployeeSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export default mongoose.model("Employee", EmployeeSchema);
+module.exports = mongoose.model("Employee", EmployeeSchema);

@@ -1,5 +1,5 @@
-import LoginAttempt from "../models/LoginAttempt.js";
-import geoip from "geoip-lite";
+const LoginAttempt = require("../models/LoginAttempt.js");
+const geoip = require("geoip-lite");
 
 // Constants
 const MAX_ATTEMPTS = 3;
@@ -104,13 +104,10 @@ const recordFailedAttempt = async (userId, userEmail, ipAddress, clientLocation 
         }
 
         // Auto-lock if attempts >= MAX_ATTEMPTS
-        if (attempt.attemptCount >= MAX_ATTEMPTS) {
-            attempt.isLocked = true;
-            attempt.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
-            console.log(
-                `Account locked for ${userEmail} until ${attempt.lockUntil}`
-            );
-        }
+        // if (attempt.attemptCount >= MAX_ATTEMPTS) {
+        //     attempt.isLocked = true;
+        //     attempt.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
+        // }
 
         await attempt.save();
 
@@ -147,7 +144,7 @@ const lockAccount = async (userId) => {
         );
 
         if (result) {
-            console.log(`Account manually locked for userId ${userId} until ${lockUntil}`);
+
         }
 
         return result;
@@ -185,7 +182,7 @@ const isAccountLocked = async (userId, email = null) => {
                     updatedAt: new Date(),
                 }
             );
-            console.log(`Account auto-unlocked for ${email || userId}`);
+
             return false;
         }
 
@@ -254,7 +251,7 @@ const recordSuccessfulLogin = async (userId, userEmail, ipAddress = null, client
             await result.save();
         }
 
-        console.log(`Successful login recorded for ${userEmail} from IP: ${ipAddress}`);
+
         return result;
     } catch (error) {
         console.error("Error recording successful login:", error);
@@ -344,7 +341,7 @@ const unlockAccount = async (userId) => {
         );
 
         if (result) {
-            console.log(`Account unlocked for userId ${userId}`);
+
         }
 
         return result;
@@ -373,7 +370,7 @@ const resetLoginAttempts = async (userId) => {
         );
 
         if (result) {
-            console.log(`Login attempts reset for userId ${userId}`);
+
         }
 
         return result;
@@ -383,18 +380,8 @@ const resetLoginAttempts = async (userId) => {
     }
 };
 
-export {
-    recordFailedAttempt,
-    lockAccount,
-    isAccountLocked,
-    recordSuccessfulLogin,
-    getLoginAttemptStatus,
-    unlockAccount,
-    resetLoginAttempts,
-    getLocationFromIP,
-};
 
-export default {
+module.exports = {
     recordFailedAttempt,
     lockAccount,
     isAccountLocked,

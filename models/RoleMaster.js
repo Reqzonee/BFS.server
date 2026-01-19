@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const RoleMasterSchema = new mongoose.Schema(
   {
@@ -18,4 +18,4 @@ const RoleMasterSchema = new mongoose.Schema(
   },
 );
 
-export default mongoose.model("RoleMaster", RoleMasterSchema);
+module.exports = mongoose.model("RoleMaster", RoleMasterSchema);

@@ -1,13 +1,13 @@
-import swaggerJsdoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "BwebDemoProject API",
+      title: "Chocolateroom API",
       version: "1.0.0",
-      description: "API documentation for BwebDemoProject Backend Server",
+      description: "API documentation for Chocolateroom Backend Server",
       contact: {
         name: "API Support",
       },
@@ -447,7 +447,7 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-export const setupSwagger = (app) => {
+const setupSwagger = (app) => {
   // Swagger UI route
   app.use(
     "/api-docs",
@@ -455,7 +455,7 @@ export const setupSwagger = (app) => {
     swaggerUi.setup(swaggerSpec, {
       explorer: true,
       customCss: ".swagger-ui .topbar { display: none }",
-      customSiteTitle: "BwebDemoProject API Documentation",
+      customSiteTitle: "Chocolateroom API Documentation",
     }),
   );
 
@@ -468,4 +468,7 @@ export const setupSwagger = (app) => {
   console.log("📚 Swagger UI available at /api-docs");
 };
 
-export default swaggerSpec;
+module.exports = {
+  setupSwagger,
+  swaggerSpec
+};

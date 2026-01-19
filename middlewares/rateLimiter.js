@@ -12,7 +12,7 @@
  * - Graceful 429 responses with retry-after headers
  */
 
-import rateLimit from 'express-rate-limit';
+const rateLimit = require('express-rate-limit');
 
 /**
  * Get client IP address from request
@@ -83,7 +83,7 @@ const skipIfHealthCheck = (req) => {
  * Default: 100 requests per 15 minutes per IP
  * Applied to all API endpoints
  */
-export const generalRateLimiter = rateLimit({
+const generalRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // 100 requests per window
     message: 'Too many requests from this IP, please try again after 15 minutes',
@@ -99,7 +99,7 @@ export const generalRateLimiter = rateLimit({
  * Stricter limits for authentication endpoints to prevent brute force
  * Default: 5 login attempts per 15 minutes per IP
  */
-export const authRateLimiter = rateLimit({
+const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Only 5 login attempts per window
     message: 'Too many login attempts from this IP, please try again after 15 minutes',
@@ -133,7 +133,7 @@ export const authRateLimiter = rateLimit({
  * Very strict limits for password reset/OTP endpoints
  * Default: 3 requests per hour per IP
  */
-export const passwordResetRateLimiter = rateLimit({
+const passwordResetRateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 3, // Only 3 password reset attempts per hour
     message: 'Too many password reset requests from this IP, please try again after an hour',
@@ -158,7 +158,7 @@ export const passwordResetRateLimiter = rateLimit({
  * Limits requests per user, not just IP
  * Default: 200 requests per 15 minutes per user
  */
-export const userRateLimiter = rateLimit({
+const userRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 200, // 200 requests per window per user
     standardHeaders: true,
@@ -172,7 +172,7 @@ export const userRateLimiter = rateLimit({
  * For endpoints that perform heavy database operations
  * Default: 30 requests per minute per IP
  */
-export const searchRateLimiter = rateLimit({
+const searchRateLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 30, // 30 requests per minute
     message: 'Too many search requests, please slow down',
@@ -187,7 +187,7 @@ export const searchRateLimiter = rateLimit({
  * Limits file uploads to prevent abuse
  * Default: 10 uploads per hour per IP
  */
-export const uploadRateLimiter = rateLimit({
+const uploadRateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 10, // 10 uploads per hour
     message: 'Too many file uploads, please try again later',
@@ -197,7 +197,7 @@ export const uploadRateLimiter = rateLimit({
     handler: rateLimitHandler,
 });
 
-export default {
+module.exports = {
     generalRateLimiter,
     authRateLimiter,
     passwordResetRateLimiter,

@@ -1,9 +1,17 @@
-import jwt from "jsonwebtoken";
+const jwt = require("jsonwebtoken");
 
-export const generateToken = (_id, role) => {
+const generateToken = (_id, role, companyId = null) => {
+  const payload = { id: _id, role: role };
+  if (companyId) payload.companyId = companyId;
+
   return jwt.sign(
-    { id: _id, role: role },
+    payload,
     process.env[`${role.toUpperCase()}_JWT_SECRET_KEY`],
     { expiresIn: process.env.JWT_EXPIRY },
   );
+};
+
+
+module.exports = {
+  generateToken
 };

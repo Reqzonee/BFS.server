@@ -8,7 +8,7 @@
  * - https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
  */
 
-import dotenv from 'dotenv';
+const dotenv = require("dotenv");
 dotenv.config();
 
 // ============ ENVIRONMENT DETECTION ============
@@ -16,7 +16,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // ============ RATE LIMITING CONFIGURATION ============
-export const rateLimitConfig = {
+const rateLimitConfig = {
     // General API rate limit
     general: {
         windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -49,12 +49,12 @@ export const rateLimitConfig = {
 };
 
 // ============ CORS CONFIGURATION ============
-export const corsConfig = {
+const corsConfig = {
     // Allowed origins - expand this list for production
     allowedOrigins: [
         'http://localhost:3000',
         'http://localhost:3001',
-        'http://localhost:7002',
+        'http://localhost:7005',
         ...(process.env.ALLOWED_ORIGINS?.split(',') || []),
     ].filter(Boolean),
 
@@ -81,7 +81,7 @@ export const corsConfig = {
 };
 
 // ============ JWT CONFIGURATION ============
-export const jwtConfig = {
+const jwtConfig = {
     // Token expiry
     expiresIn: process.env.JWT_EXPIRY || '7d',
 
@@ -96,7 +96,7 @@ export const jwtConfig = {
 };
 
 // ============ PASSWORD POLICY ============
-export const passwordPolicy = {
+const passwordPolicy = {
     minLength: 8,
     maxLength: 128,
     requireUppercase: true,
@@ -117,7 +117,7 @@ export const passwordPolicy = {
 };
 
 // ============ INPUT VALIDATION LIMITS ============
-export const inputLimits = {
+const inputLimits = {
     email: { max: 254 }, // RFC 5321
     password: { min: 6, max: 128 },
     name: { min: 1, max: 100 },
@@ -131,7 +131,7 @@ export const inputLimits = {
 };
 
 // ============ REQUEST SIZE LIMITS ============
-export const requestLimits = {
+const requestLimits = {
     // JSON body size limit
     jsonLimit: '10mb',
 
@@ -146,7 +146,7 @@ export const requestLimits = {
 };
 
 // ============ SECURITY HEADERS ============
-export const securityHeadersConfig = {
+const securityHeadersConfig = {
     // Content Security Policy
     csp: {
         directives: {
@@ -170,7 +170,7 @@ export const securityHeadersConfig = {
 };
 
 // ============ LOGIN ATTEMPT SETTINGS ============
-export const loginAttemptConfig = {
+const loginAttemptConfig = {
     // Max failed attempts before lockout
     maxAttempts: 3,
 
@@ -183,14 +183,14 @@ export const loginAttemptConfig = {
 
 // ============ SESSION/TOKEN BLACKLIST ============
 // For token revocation (implement if needed)
-export const tokenBlacklistConfig = {
+const tokenBlacklistConfig = {
     enabled: false, // Enable this for logout/revocation support
     storage: 'memory', // 'memory' or 'redis'
     ttl: 7 * 24 * 60 * 60, // 7 days (match JWT expiry)
 };
 
 // ============ AUDIT LOGGING ============
-export const auditConfig = {
+const auditConfig = {
     // Log authentication events
     logAuthEvents: true,
 
@@ -205,7 +205,7 @@ export const auditConfig = {
 };
 
 // ============ FEATURE FLAGS ============
-export const securityFeatures = {
+const securityFeatures = {
     // Enable rate limiting
     rateLimiting: true,
 
@@ -228,7 +228,7 @@ export const securityFeatures = {
     debugMode: isDevelopment,
 };
 
-export default {
+module.exports = {
     rateLimitConfig,
     corsConfig,
     jwtConfig,

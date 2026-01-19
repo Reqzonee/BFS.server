@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const OtpSchema = new mongoose.Schema(
   {
@@ -25,4 +25,4 @@ const OtpSchema = new mongoose.Schema(
 
 const Otp = mongoose.model("Otp", OtpSchema);
 
-export default Otp;
+module.exports = Otp;

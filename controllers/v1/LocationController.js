@@ -1,0 +1,1002 @@
+const CityModels = require("../../models/City.js");
+const CountryModels = require("../../models/Country.js");
+const StateModels = require("../../models/State.js");
+const { getReferencingCounts,
+  formatReferenceMessage,
+ } = require("../../utils/referenceHelper.js");
+
+// COUNTRY
+
+const createCountry = async (req, res) => {
+  try {
+    const { countryName, countryCode, isActive } = req.body;
+
+    const existingCountry = await CountryModels.findOne({ countryName });
+
+    if (existingCountry) {
+      return res.status(400).json({
+        isOk: false,
+        message: "Country already exists",
+        status: 400,
+      });
+    }
+
+    const country = new CountryModels({
+      countryName,
+      countryCode,
+      isActive,
+    });
+    await country.save();
+
+    return res.status(201).json({
+      isOk: true,
+      message: "Country created successfully",
+      status: 201,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listAllCountries = async (req, res) => {
+  try {
+    const countries = await CountryModels.find({ isActive: true });
+
+    return res.status(200).json({
+      isOk: true,
+      data: countries,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const deleteCountry = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+
+    const country = await CountryModels.findById(countryId);
+
+    if (!country) {
+      return res.status(404).json({
+        isOk: false,
+        message: "Country not found",
+        status: 404,
+      });
+    }
+
+    const referenceInfo = await getReferencingCounts("Country", countryId);
+
+    if (referenceInfo.totalReferences > 0) {
+      return res.status(409).json({
+        message: "Cannot delete country. It is being used by other records.",
+        isOk: false,
+        status: 409,
+        totalReferences: referenceInfo.totalReferences,
+        references: referenceInfo.details,
+        formattedMessage: formatReferenceMessage(referenceInfo.details),
+      });
+    }
+
+    await CountryModels.findByIdAndDelete({ _id: countryId });
+
+    return res.status(200).json({
+      isOk: true,
+      message: "Country deleted successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const updateCountry = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+    const { countryName, countryCode, isActive } = req.body;
+
+    const country = await CountryModels.findById(countryId);
+
+    if (!country) {
+      return res.status(404).json({
+        isOk: false,
+        message: "Country not found",
+        status: 404,
+      });
+    }
+
+    country.countryName = countryName;
+    country.countryCode = countryCode;
+    country.isActive = isActive;
+
+    await country.save();
+
+    return res.status(200).json({
+      isOk: true,
+      message: "Country updated successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listCountryByParams = async (req, res) => {
+  try {
+    let { skip, per_page, sorton, sortdir, match, isActive } = req.body;
+
+    // Build the initial match condition
+    let matchCondition = {};
+    if (isActive !== undefined && isActive !== null && isActive !== "") {
+      matchCondition.isActive = isActive;
+    }
+
+    let query = [
+      {
+        $match: matchCondition,
+      },
+      {
+        $facet: {
+          stage1: [
+            {
+              $group: {
+                _id: null,
+                count: {
+                  $sum: 1,
+                },
+              },
+            },
+          ],
+          stage2: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: per_page,
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$stage1",
+        },
+      },
+      {
+        $project: {
+          count: "$stage1.count",
+          data: "$stage2",
+        },
+      },
+    ];
+    if (match) {
+      query = [
+        {
+          $match: {
+            $or: [
+              {
+                countryName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                countryCode: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        },
+      ].concat(query);
+    }
+
+    if (sorton && sortdir) {
+      let sort = {};
+      sort[sorton] = sortdir == "desc" ? -1 : 1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    } else {
+      let sort = {};
+      sort["createdAt"] = -1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    }
+
+    const list = await CountryModels.aggregate(query);
+
+    return res.status(200).json({
+      isOk: true,
+      data: list,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const getCountryById = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+
+    const country = await CountryModels.findById(countryId);
+
+    if (!country) {
+      return res.status(404).json({
+        isOk: false,
+        message: "Country not found",
+        status: 404,
+      });
+    }
+
+    return res.status(200).json({
+      isOk: true,
+      data: country,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+// STATE
+
+const createState = async (req, res) => {
+  try {
+    const { stateName, stateCode, countryId, isActive } = req.body;
+    
+
+    const existingState = await StateModels.findOne({ stateName });
+
+    if (existingState) {
+      return res.status(400).json({
+        isOk: false,
+        message: "State already exists",
+        status: 400,
+      });
+    }
+
+    const state = new StateModels({
+      stateName,
+      stateCode,
+      countryId,
+      isActive,
+    });
+
+    await state.save();
+
+    return res.status(201).json({
+      isOk: true,
+      message: "State created successfully",
+      status: 201,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listAllStates = async (req, res) => {
+  try {
+    const states = await StateModels.find({ isActive: true }).populate(
+      "countryId",
+    );
+
+    return res.status(200).json({
+      isOk: true,
+      data: states,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const getStateById = async (req, res) => {
+  try {
+    const { stateId } = req.params;
+
+    const state = await StateModels.findById(stateId);
+
+    if (!state) {
+      return res.status(404).json({
+        isOk: false,
+        message: "State not found",
+        status: 404,
+      });
+    }
+
+    return res.status(200).json({
+      isOk: true,
+      data: state,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const deleteState = async (req, res) => {
+  try {
+    const { stateId } = req.params;
+
+    const state = await StateModels.findById(stateId);
+
+    if (!state) {
+      return res.status(404).json({
+        isOk: false,
+        message: "State not found",
+        status: 404,
+      });
+    }
+
+    await StateModels.deleteOne({ _id: stateId });
+
+    return res.status(200).json({
+      isOk: true,
+      message: "State deleted successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const updateState = async (req, res) => {
+  try {
+    const { stateId } = req.params;
+    const { stateName, stateCode, countryId, isActive } = req.body;
+
+    const state = await StateModels.findById(stateId);
+
+    if (!state) {
+      return res.status(404).json({
+        isOk: false,
+        message: "State not found",
+        status: 404,
+      });
+    }
+
+    state.stateName = stateName;
+    state.stateCode = stateCode;
+    state.countryId = countryId;
+    state.isActive = isActive;
+
+    await state.save();
+
+    return res.status(200).json({
+      isOk: true,
+      message: "State updated successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listStateByCountry = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+
+    const states = await StateModels.find({ countryId, isActive: true });
+
+    return res.status(200).json({
+      isOk: true,
+      data: states,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listStateByParams = async (req, res) => {
+  try {
+    let { skip, per_page, sorton, sortdir, match, isActive } = req.body;
+
+    // Build the initial match condition
+    let matchCondition = {};
+    if (isActive !== undefined && isActive !== null && isActive !== "") {
+      matchCondition.isActive = isActive;
+    }
+
+    let query = [
+      {
+        $match: matchCondition,
+      },
+      {
+        $lookup: {
+          from: "countries",
+          localField: "countryId",
+          foreignField: "_id",
+          as: "country",
+        },
+      },
+      {
+        $unwind: {
+          path: "$country",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          countryName: { $ifNull: ["$country.countryName", ""] },
+        },
+      },
+      {
+        $facet: {
+          stage1: [
+            {
+              $group: {
+                _id: null,
+                count: {
+                  $sum: 1,
+                },
+              },
+            },
+          ],
+          stage2: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: per_page,
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$stage1",
+        },
+      },
+      {
+        $project: {
+          count: "$stage1.count",
+          data: "$stage2",
+        },
+      },
+    ];
+    if (match) {
+      query = [
+        {
+          $match: {
+            $or: [
+              {
+                stateName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                stateCode: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                countryName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        },
+      ].concat(query);
+    }
+
+    if (sorton && sortdir) {
+      let sort = {};
+      sort[sorton] = sortdir == "desc" ? -1 : 1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    } else {
+      let sort = {};
+      sort["createdAt"] = -1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    }
+
+    const list = await StateModels.aggregate(query);
+
+    return res.status(200).json({
+      isOk: true,
+      status: 200,
+      data: list,
+    });
+  } catch (error) {
+    
+    return res.status(500).status({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+// CITY
+
+const createCity = async (req, res) => {
+  const { cityName, cityCode, stateId, countryId, isActive } = req.body;
+
+  try {
+    const existingCity = await CityModels.findOne({ cityName });
+
+    if (existingCity) {
+      return res.status(400).json({
+        isOk: false,
+        message: "City already exists",
+        status: 400,
+      });
+    }
+
+    const city = new CityModels({
+      cityName,
+      cityCode,
+      stateId,
+      countryId,
+      isActive,
+    });
+
+    await city.save();
+
+    return res.status(201).json({
+      isOk: true,
+      message: "City created successfully",
+      status: 201,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listAllCities = async (req, res) => {
+  try {
+    const cities = await CityModels.find({ isActive: true }).populate(
+      "stateId countryId",
+    );
+
+    return res.status(200).json({
+      isOk: true,
+      data: cities,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const getCityById = async (req, res) => {
+  try {
+    const { cityId } = req.params;
+
+    const city = await CityModels.findById(cityId);
+
+    if (!city) {
+      return res.status(404).json({
+        isOk: false,
+        message: "City not found",
+        status: 404,
+      });
+    }
+
+    return res.status(200).json({
+      isOk: true,
+      data: city,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const deleteCity = async (req, res) => {
+  try {
+    const { cityId } = req.params;
+
+    const city = await CityModels.findById(cityId);
+
+    if (!city) {
+      return res.status(404).json({
+        isOk: false,
+        message: "City not found",
+        status: 404,
+      });
+    }
+
+    await CityModels.deleteOne({ _id: cityId });
+
+    return res.status(200).json({
+      isOk: true,
+      message: "City deleted successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const updateCity = async (req, res) => {
+  try {
+    const { cityId } = req.params;
+    const { cityName, cityCode, stateId, countryId, isActive } = req.body;
+
+    const city = await CityModels.findById(cityId);
+
+    if (!city) {
+      return res.status(404).json({
+        isOk: false,
+        message: "City not found",
+        status: 404,
+      });
+    }
+
+    city.cityName = cityName;
+    city.cityCode = cityCode;
+    city.stateId = stateId;
+    city.countryId = countryId;
+    city.isActive = isActive;
+
+    await city.save();
+
+    return res.status(200).json({
+      isOk: true,
+      message: "City updated successfully",
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listCityByState = async (req, res) => {
+  try {
+    const { stateId } = req.params;
+
+    const cities = await CityModels.find({ stateId, isActive: true });
+
+    return res.status(200).json({
+      isOk: true,
+      data: cities,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const listCityByParams = async (req, res) => {
+  try {
+    let { skip, per_page, sorton, sortdir, match, isActive } = req.body;
+
+    // Build the initial match condition
+    let matchCondition = {};
+    if (isActive !== undefined && isActive !== null && isActive !== "") {
+      matchCondition.isActive = isActive;
+    }
+
+    let query = [
+      {
+        $match: matchCondition,
+      },
+      {
+        $lookup: {
+          from: "countries",
+          localField: "countryId",
+          foreignField: "_id",
+          as: "country",
+        },
+      },
+      {
+        $unwind: {
+          path: "$country",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          countryName: { $ifNull: ["$country.countryName", ""] },
+        },
+      },
+      {
+        $lookup: {
+          from: "states",
+          localField: "stateId",
+          foreignField: "_id",
+          as: "state",
+        },
+      },
+      {
+        $unwind: {
+          path: "$state",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          stateName: { $ifNull: ["$state.stateName", ""] },
+        },
+      },
+      {
+        $facet: {
+          stage1: [
+            {
+              $group: {
+                _id: null,
+                count: {
+                  $sum: 1,
+                },
+              },
+            },
+          ],
+          stage2: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: per_page,
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$stage1",
+        },
+      },
+      {
+        $project: {
+          count: "$stage1.count",
+          data: "$stage2",
+        },
+      },
+    ];
+    if (match) {
+      query = [
+        {
+          $match: {
+            $or: [
+              {
+                stateName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                countryName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+              {
+                cityName: {
+                  $regex: match,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        },
+      ].concat(query);
+    }
+
+    if (sorton && sortdir) {
+      let sort = {};
+      sort[sorton] = sortdir == "desc" ? -1 : 1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    } else {
+      let sort = {};
+      sort["createdAt"] = -1;
+      query = [
+        {
+          $sort: sort,
+        },
+      ].concat(query);
+    }
+
+    const list = await CityModels.aggregate(query);
+
+    return res.status(200).json({
+      isOk: true,
+      data: list,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+// LOCATION
+
+const listCountryStateCity = async (req, res) => {
+  try {
+    const countries = await CountryModels.find({ isActive: true });
+
+    const result = await Promise.all(
+      countries.map(async (country) => {
+        const states = await StateModels.find({
+          countryId: country._id,
+          isActive: true,
+        });
+
+        const statesWithCities = await Promise.all(
+          states.map(async (state) => {
+            const cities = await CityModels.find({
+              stateId: state._id,
+              isActive: true,
+            });
+
+            return {
+              _id: state._id,
+              stateName: state.stateName,
+              stateCode: state.stateCode,
+              cities: cities.map((city) => ({
+                _id: city._id,
+                cityName: city.cityName,
+                cityCode: city.cityCode,
+              })),
+            };
+          }),
+        );
+
+        return {
+          _id: country._id,
+          countryName: country.countryName,
+          countryCode: country.countryCode,
+          states: statesWithCities,
+        };
+      }),
+    );
+
+    return res.status(200).json({
+      isOk: true,
+      data: result,
+      status: 200,
+    });
+  } catch (error) {
+    
+    return res.status(500).json({
+      isOk: false,
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+
+module.exports = {
+  createCountry,
+  listAllCountries,
+  deleteCountry,
+  updateCountry,
+  listCountryByParams,
+  getCountryById,
+  createState,
+  listAllStates,
+  getStateById,
+  deleteState,
+  updateState,
+  listStateByCountry,
+  listStateByParams,
+  createCity,
+  listAllCities,
+  getCityById,
+  deleteCity,
+  updateCity,
+  listCityByState,
+  listCityByParams,
+  listCountryStateCity
+};

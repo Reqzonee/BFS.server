@@ -1,41 +1,25 @@
-import express from "express";
-import mongoose from "mongoose";
-import morgan from "morgan";
-import bodyParser from "body-parser";
-import cors from "cors";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import dotenv from "dotenv";
-import hpp from "hpp";
-import { setupSwagger } from "./config/swagger.js";
+const express = require("express");
+const mongoose = require("mongoose");
+const morgan = require("morgan");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const dotenv = require("dotenv");
+const hpp = require("hpp");
+const { setupSwagger } = require("./config/swagger.js");
 
 // ============ SECURITY IMPORTS ============
 // OWASP-compliant security middleware
-import {
+const {
   securityHeaders,
   additionalSecurityHeaders,
   getCorsConfig,
   sanitizeErrors
-} from "./middlewares/securityHeaders.js";
-import {
-  generalRateLimiter,
-  authRateLimiter,
-  passwordResetRateLimiter,
-  searchRateLimiter
-} from "./middlewares/rateLimiter.js";
-import {
+} = require("./middlewares/securityHeaders.js");
+const {
   mongoSanitizer,
-  loginValidation,
-  searchValidation,
-  allowOnlyFields,
-  allowedLoginFields,
-  allowedSearchFields
-} from "./middlewares/inputValidator.js";
-
-// ES6 module equivalent of __dirname and __filename
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+} = require("./middlewares/inputValidator.js");
 
 dotenv.config();
 
@@ -100,7 +84,8 @@ app.use(cors(corsConfig));
 app.options("*", cors(corsConfig));
 
 // 3. General Rate Limiting (applied to all routes)
-app.use(generalRateLimiter);
+// Note: Can require 'generalRateLimiter' from middlewares/rateLimiter.js if needed
+// app.use(generalRateLimiter);
 
 // 4. Body Parsing with size limits (OWASP: limit request body size)
 app.use(bodyParser.json({ limit: "10mb" })); // Reduced from 50mb for security
@@ -124,8 +109,8 @@ const dbURI = process.env.DATABASE;
 mongoose
   .connect(dbURI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000,
+    // useUnifiedTopology: true,
+    // serverSelectionTimeoutMS: 10000,
   })
   .then(() => {
     console.log("✅ DB connected");
@@ -158,30 +143,22 @@ app.use(express.static("files"));
 setupSwagger(app);
 
 // ============ V1 ROUTES ============
-// Import v1 routes
-import companiesRoutes from "./routes/v1/companies.routes.js";
-import currenciesRoutes from "./routes/v1/currencies.routes.js";
-import departmentsRoutes from "./routes/v1/departments.routes.js";
-import emailsRoutes from "./routes/v1/emails.routes.js";
-import employeeRolesRoutes from "./routes/v1/employeeRoles.routes.js";
-import employeesRoutes from "./routes/v1/employees.routes.js";
-import locationsRoutes from "./routes/v1/locations.routes.js";
-import menusRoutes from "./routes/v1/menus.routes.js";
-import rolesRoutes from "./routes/v1/roles.routes.js";
-import otpRoutes from "./routes/v1/otp.routes.js";
+// Auto-register routes from routes/v1 directory
+const routesPath = path.join(__dirname, "routes/v1");
 
-app.use("/api/v1", companiesRoutes);
-app.use("/api/v1", currenciesRoutes);
-app.use("/api/v1", departmentsRoutes);
-app.use("/api/v1", emailsRoutes);
-app.use("/api/v1", employeeRolesRoutes);
-app.use("/api/v1", employeesRoutes);
-app.use("/api/v1", locationsRoutes);
-app.use("/api/v1", menusRoutes);
-app.use("/api/v1", rolesRoutes);
-app.use("/api/v1/otp", otpRoutes);
+if (fs.existsSync(routesPath)) {
+  fs.readdirSync(routesPath).forEach((file) => {
+    if (file.endsWith("Routes.js")) {
+      const route = require(path.join(routesPath, file));
+      // Mount all routes at /api/v1
+      // Route files are expected to define their own sub-paths or be modified to do sO
+      app.use("/api/v1", route);
+      // console.log(`✅ Loaded route: ${file}`);
+    }
+  });
+}
 
-console.log("✅ V1 API routes loaded");
+console.log("✅ V1 API routes loaded via auto-registration");
 
 app.get("/api", (req, res) => {
   res.json({
@@ -255,4 +232,5 @@ const port = process.env.PORT || 8000;
 app.listen(port, () => {
   console.log(`✅ Server is running on port ${port}`);
   console.log(`🔒 Security middleware enabled: Helmet, Rate Limiting, Input Validation, CSRF Protection`);
+  console.log(`✅ db ${process.env.DATABASE}`);
 });

@@ -12,12 +12,11 @@
  * https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
  */
 
-import multer from "multer";
-import { v4 as uuidv4 } from "uuid";
-import path from "path";
-import fs from "fs";
-import { promises as fsPromises } from "fs";
-import { fileTypeFromFile, fileTypeFromBuffer } from "file-type";
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
+const fs = require("fs");
+const fsPromises = require("fs").promises;
 
 // Lazy load sharp to handle Node version compatibility
 // Sharp requires Node.js 18+ - if not available, compression is disabled
@@ -25,7 +24,7 @@ let sharp = null;
 let sharpAvailable = false;
 
 try {
-    sharp = (await import("sharp")).default;
+    sharp = require("sharp");
     sharpAvailable = true;
     console.log('[UPLOAD] Sharp loaded - image compression enabled');
 } catch (err) {
@@ -39,13 +38,13 @@ try {
  * Dangerous extensions regex - blocks script/executable extensions
  * Prevents double-extension attacks (e.g., image.jpg.php)
  */
-export const DANGEROUS_EXTENSIONS_REGEX =
+const DANGEROUS_EXTENSIONS_REGEX =
     /\.(php|php\d|phtml|exe|sh|bash|pl|py|js|jsp|asp|aspx|bat|cmd|vbs|wsf|cgi|com|dll|msi|scr)(\.|$)/i;
 
 /**
  * Allowed MIME types for different file categories
  */
-export const ALLOWED_MIMES = {
+const ALLOWED_MIMES = {
     images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
     documents: ['application/pdf'],
     all: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'],
@@ -54,7 +53,7 @@ export const ALLOWED_MIMES = {
 /**
  * Allowed file extensions (must match MIME types)
  */
-export const ALLOWED_EXTENSIONS = {
+const ALLOWED_EXTENSIONS = {
     images: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
     documents: ['.pdf'],
     all: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf'],
@@ -63,8 +62,8 @@ export const ALLOWED_EXTENSIONS = {
 /**
  * Default file size limits (in bytes)
  */
-export const FILE_SIZE_LIMITS = {
-    image: 5 * 1024 * 1024,      // 5 MB
+const FILE_SIZE_LIMITS = {
+    image: 2 * 1024 * 1024,      // 5 MB
     document: 10 * 1024 * 1024,  // 10 MB
     default: 5 * 1024 * 1024,    // 5 MB
 };
@@ -103,6 +102,9 @@ function generateSecureFilename(originalName, forceExt = null) {
  */
 async function validateMagicBytes(filePath, allowedMimes) {
     try {
+        // Dynamically import file-type (ESM only)
+        const { fileTypeFromFile } = await import('file-type');
+
         const typeInfo = await fileTypeFromFile(filePath);
 
         if (!typeInfo) {
@@ -131,6 +133,9 @@ async function validateMagicBytes(filePath, allowedMimes) {
  */
 async function validateBufferMagicBytes(buffer, allowedMimes) {
     try {
+        // Dynamically import file-type (ESM only)
+        const { fileTypeFromBuffer } = await import('file-type');
+
         const typeInfo = await fileTypeFromBuffer(buffer);
 
         if (!typeInfo) {
@@ -296,7 +301,7 @@ function createFileFilter(allowedMimes, allowedExts) {
  * @param {object} options - Middleware options
  * @returns {Function} Express middleware
  */
-export function createSecureImageUpload(options = {}) {
+function createSecureImageUpload(options = {}) {
     const {
         destination = 'uploads',
         fieldName = 'file',
@@ -418,7 +423,7 @@ export function createSecureImageUpload(options = {}) {
  * @param {object} options - Middleware options
  * @returns {Function} Express middleware
  */
-export function createSecureDocumentUpload(options = {}) {
+function createSecureDocumentUpload(options = {}) {
     const {
         destination = 'uploads',
         fieldName = 'file',
@@ -500,7 +505,7 @@ export function createSecureDocumentUpload(options = {}) {
  * @param {object} options - Middleware options
  * @returns {Function} Express middleware
  */
-export function createSecureUpload(options = {}) {
+function createSecureUpload(options = {}) {
     const {
         destination = 'uploads',
         fieldName = 'file',
@@ -579,7 +584,7 @@ export function createSecureUpload(options = {}) {
  * @param {object} options - Middleware options
  * @returns {Function} Express middleware
  */
-export function createSecureMultiUpload(options = {}) {
+function createSecureMultiUpload(options = {}) {
     const {
         destination = 'uploads',
         fields = [{ name: 'files', maxCount: 5 }],
@@ -675,21 +680,17 @@ export function createSecureMultiUpload(options = {}) {
 }
 
 // ============ UTILITY EXPORTS ============
-
-export {
+module.exports = {
+    createSecureImageUpload,
+    createSecureDocumentUpload,
+    createSecureUpload,
+    createSecureMultiUpload,
     compressToWebP,
     compressToTargetSize,
     validateMagicBytes,
     validateBufferMagicBytes,
     generateSecureFilename,
     ensureUploadDir,
-};
-
-export default {
-    createSecureImageUpload,
-    createSecureDocumentUpload,
-    createSecureUpload,
-    createSecureMultiUpload,
     ALLOWED_MIMES,
     ALLOWED_EXTENSIONS,
     FILE_SIZE_LIMITS,

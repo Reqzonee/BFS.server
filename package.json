@@ -1,8 +1,7 @@
 {
-  "name": "barodaweb-demo-server",
+  "name": "chocolateroom-server",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "test": "jest",

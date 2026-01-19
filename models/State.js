@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const StateSchema = new mongoose.Schema(
   {
@@ -29,4 +29,4 @@ StateSchema.index({ stateCode: 1, countryId: 1 }, { unique: true });
 // Create compound unique index for stateName and countryId combination
 StateSchema.index({ stateName: 1, countryId: 1 }, { unique: true });
 
-export default mongoose.model("State", StateSchema);
+module.exports = mongoose.model("State", StateSchema);

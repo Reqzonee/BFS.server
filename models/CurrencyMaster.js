@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const CurrencyMasterSchema = new mongoose.Schema(
   {
@@ -27,4 +27,4 @@ const CurrencyMasterSchema = new mongoose.Schema(
   },
 );
 
-export default mongoose.model("CurrencyMaster", CurrencyMasterSchema);
+module.exports = mongoose.model("CurrencyMaster", CurrencyMasterSchema);

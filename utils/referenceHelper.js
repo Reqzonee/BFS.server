@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 /**
  * Discover all model schema paths that reference the given model name
@@ -7,7 +7,7 @@ import mongoose from "mongoose";
  * @param {string|mongoose.Types.ObjectId} docId - The document ID to check references for
  * @returns {Promise<{totalReferences: number, details: Array<{model: string, path: string, count: number}>}>}
  */
-export async function getReferencingCounts(targetModelName, docId) {
+async function getReferencingCounts(targetModelName, docId) {
   try {
     const id =
       typeof docId === "string" ? new mongoose.Types.ObjectId(docId) : docId;
@@ -84,7 +84,7 @@ export async function getReferencingCounts(targetModelName, docId) {
  * @param {Array} details - Array of reference details from getReferencingCounts
  * @returns {string}
  */
-export function formatReferenceMessage(details) {
+function formatReferenceMessage(details) {
   if (details.length === 0) {
     return "No references found.";
   }
@@ -96,3 +96,9 @@ export function formatReferenceMessage(details) {
 
   return `This record is referenced by: ${messages.join(", ")}`;
 }
+
+
+module.exports = {
+  getReferencingCounts,
+  formatReferenceMessage
+};
