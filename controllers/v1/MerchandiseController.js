@@ -167,11 +167,65 @@ const updateStoreMerchandiseConfig = async (req, res) => {
 };
 
 
+
+// Bulk Create Merchandise
+const bulkCreateMerchandise = async (req, res) => {
+    try {
+        if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
+            return res.status(403).json({ isOk: false, message: "Permission Denied" });
+        }
+
+        const items = req.body;
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ isOk: false, message: "Invalid data. Expected non-empty array." });
+        }
+
+        const companyId = req.user.companyId || req.user.id;
+
+        const operations = items.map(async (item) => {
+            try {
+                if (!item.productName || !item.sku || !item.basePrice || !item.categoryId) {
+                    throw new Error(`Missing required fields for SKU: ${item.sku || 'Unknown'}`);
+                }
+
+                const existing = await MerchandiseMaster.findOne({ sku: item.sku });
+                if (existing) {
+                    throw new Error(`SKU ${item.sku} already exists`);
+                }
+
+                const newItem = new MerchandiseMaster({
+                    ...item,
+                    companyId: companyId
+                });
+                await newItem.save();
+                return { success: true, sku: item.sku };
+            } catch (err) {
+                return { success: false, sku: item.sku, error: err.message };
+            }
+        });
+
+        const processResults = await Promise.all(operations);
+        const successful = processResults.filter(r => r.success);
+        const failed = processResults.filter(r => !r.success);
+
+        res.status(200).json({
+            isOk: true,
+            message: `Processed ${items.length} items. Success: ${successful.length}, Failed: ${failed.length}`,
+            data: { successful, failed }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal Server Error" });
+    }
+};
+
 module.exports = {
     createMerchandise,
     getAllMerchandise,
     updateMerchandise,
     deleteMerchandise,
     getStoreMerchandise,
-    updateStoreMerchandiseConfig
+    updateStoreMerchandiseConfig,
+    bulkCreateMerchandise
 };

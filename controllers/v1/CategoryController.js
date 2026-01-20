@@ -1,11 +1,17 @@
 const CategoryMaster = require("../../models/CategoryMaster.js");
 
-
 // Get All Categories
 const getAllCategories = async (req, res) => {
     try {
         const companyId = req.user.companyId || req.user.id;
-        const categories = await CategoryMaster.find({ companyId }).sort({ displayOrder: 1 });
+        const { type } = req.query;
+
+        let query = { companyId };
+        if (type) {
+            query.type = type;
+        }
+
+        const categories = await CategoryMaster.find(query).sort({ displayOrder: 1 });
         res.status(200).json({ isOk: true, data: categories, message: "Categories fetched successfully" });
     } catch (error) {
         console.error(error);
@@ -40,8 +46,6 @@ const createCategory = async (req, res) => {
         res.status(500).json({ isOk: false, message: "Internal server error" });
     }
 };
-
-// ... existing code ...
 
 // Update Category
 const updateCategory = async (req, res) => {
@@ -115,9 +119,9 @@ const bulkCreateCategories = async (req, res) => {
 
 
 module.exports = {
-  getAllCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  bulkCreateCategories
+    getAllCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    bulkCreateCategories
 };

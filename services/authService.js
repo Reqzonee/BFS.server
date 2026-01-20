@@ -2,7 +2,7 @@ const LoginAttempt = require("../models/LoginAttempt.js");
 const geoip = require("geoip-lite");
 
 // Constants
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 11;
 const LOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 /**
@@ -104,10 +104,10 @@ const recordFailedAttempt = async (userId, userEmail, ipAddress, clientLocation 
         }
 
         // Auto-lock if attempts >= MAX_ATTEMPTS
-        // if (attempt.attemptCount >= MAX_ATTEMPTS) {
-        //     attempt.isLocked = true;
-        //     attempt.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
-        // }
+        if (attempt.attemptCount >= MAX_ATTEMPTS) {
+            attempt.isLocked = true;
+            attempt.lockUntil = new Date(Date.now() + LOCK_DURATION_MS);
+        }
 
         await attempt.save();
 

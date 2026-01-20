@@ -20,13 +20,13 @@ const rateLimitConfig = {
     // General API rate limit
     general: {
         windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-        maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+        maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
     },
 
     // Authentication endpoints (stricter)
     auth: {
         windowMs: 15 * 60 * 1000, // 15 minutes
-        maxRequests: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 5, // 5 attempts
+        maxRequests: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 100, // 100 attempts
     },
 
     // Password reset (very strict)
@@ -172,7 +172,7 @@ const securityHeadersConfig = {
 // ============ LOGIN ATTEMPT SETTINGS ============
 const loginAttemptConfig = {
     // Max failed attempts before lockout
-    maxAttempts: 3,
+    maxAttempts: 11,
 
     // Lockout duration in milliseconds
     lockoutDuration: 24 * 60 * 60 * 1000, // 24 hours
