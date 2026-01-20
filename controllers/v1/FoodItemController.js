@@ -1,5 +1,5 @@
 const FoodItemMaster = require("../../models/FoodItemMaster.js");
-const { validationResult  } = require("express-validator");
+const { validationResult } = require("express-validator");
 
 
 
@@ -247,11 +247,11 @@ const bulkCreateFoodItems = async (req, res) => {
 
 
 module.exports = {
-  getAllFoodItems,
-  getFoodItemById,
-  createFoodItem,
-  updateFoodItem,
-  deleteFoodItem,
-  searchFoodItems,
-  bulkCreateFoodItems
+    getAllFoodItems,
+    getFoodItemById,
+    createFoodItem,
+    updateFoodItem,
+    deleteFoodItem,
+    searchFoodItems,
+    bulkCreateFoodItems
 };

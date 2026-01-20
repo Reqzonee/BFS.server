@@ -3,6 +3,8 @@ const FoodItemMaster = require("../../models/FoodItemMaster.js");
 const StoreMaster = require("../../models/StoreMaster.js");
 const ComboMaster = require("../../models/ComboMaster.js");
 const StoreComboConfig = require("../../models/StoreComboConfig.js");
+const StoreAddOnConfig = require("../../models/StoreAddOnConfig.js");
+const AddOnMaster = require("../../models/AddOnMaster.js");
 
 // Get Store Menu (Merged View: Master + Config)
 const getStoreMenu = async (req, res) => {
@@ -38,7 +40,9 @@ const getStoreMenu = async (req, res) => {
         });
 
         // --- COMBOS ---
-        const masterCombos = await ComboMaster.find({ companyId, isActive: true }).lean();
+        const masterCombos = await ComboMaster.find({ companyId, isActive: true })
+            .populate("foodItems.foodId")
+            .lean();
         const comboConfigs = await StoreComboConfig.find({ storeId }).lean();
 
         const comboConfigMap = new Map();
@@ -155,8 +159,82 @@ const updateStoreComboConfig = async (req, res) => {
 };
 
 
+// Get Store AddOns (Merged View)
+const getStoreAddOns = async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const store = await StoreMaster.findOne({ _id: storeId });
+        if (!store) {
+            return res.status(404).json({ isOk: false, message: "Store not found" });
+        }
+        const companyId = store.companyId;
+
+        const masterAddOns = await AddOnMaster.find({ companyId, isActive: true }).lean();
+        const storeConfigs = await StoreAddOnConfig.find({ storeId }).lean();
+
+        const configMap = new Map();
+        storeConfigs.forEach(config => {
+            configMap.set(config.addOnId.toString(), config);
+        });
+
+        const addOns = masterAddOns.map(addOn => {
+            const config = configMap.get(addOn._id.toString());
+            return {
+                ...addOn,
+                isAvailable: config ? config.isAvailable : true,
+                price: (config && config.customPrice) ? config.customPrice : addOn.price,
+                isCustomPrice: (config && config.customPrice) ? true : false,
+                configId: config ? config._id : null
+            };
+        });
+
+        res.status(200).json({
+            isOk: true,
+            data: addOns,
+            message: "Store add-ons fetched successfully",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal server error" });
+    }
+};
+
+// Update AddOn Config
+const updateStoreAddOnConfig = async (req, res) => {
+    try {
+        const { storeId, addOnId } = req.params;
+        let { isAvailable, customPrice } = req.body;
+
+        if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
+            customPrice = undefined;
+        }
+
+        const config = await StoreAddOnConfig.findOneAndUpdate(
+            { storeId, addOnId },
+            {
+                storeId,
+                addOnId,
+                isAvailable,
+                customPrice: customPrice || null
+            },
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            isOk: true,
+            data: config,
+            message: "Store add-on config updated successfully"
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal server error" });
+    }
+};
+
 module.exports = {
-  getStoreMenu,
-  updateStoreItemConfig,
-  updateStoreComboConfig
+    getStoreMenu,
+    updateStoreItemConfig,
+    updateStoreComboConfig,
+    getStoreAddOns,
+    updateStoreAddOnConfig
 };
