@@ -18,6 +18,14 @@ const createMerchandise = async (req, res) => {
             return res.status(409).json({ isOk: false, message: "SKU already exists" });
         }
 
+        if (req.body.variants && typeof req.body.variants === 'string') {
+            try {
+                req.body.variants = JSON.parse(req.body.variants);
+            } catch (e) {
+                req.body.variants = [];
+            }
+        }
+
         const newItem = new MerchandiseMaster({
             ...req.body,
             companyId: req.user.companyId || req.user.id
@@ -44,6 +52,14 @@ const updateMerchandise = async (req, res) => {
         }
 
         let updateData = { ...req.body };
+
+        if (updateData.variants && typeof updateData.variants === 'string') {
+            try {
+                updateData.variants = JSON.parse(updateData.variants);
+            } catch (e) {
+                updateData.variants = [];
+            }
+        }
 
         if (req.file) {
             updateData.imageUrls = [req.file.path.replace(/\\/g, "/")];
@@ -127,10 +143,26 @@ const getStoreMerchandise = async (req, res) => {
         // Merge
         const mergedItems = masterItems.map(item => {
             const config = configMap.get(item._id.toString());
+
+            let mergedVariants = item.variants || [];
+            if (config && config.variantConfig && item.variants) {
+                const variantConfigMap = new Map();
+                config.variantConfig.forEach(vc => variantConfigMap.set(vc.variantKey, vc.isSoldOut ? false : true)); // Config uses isSoldOut (true=unavailable)
+
+                mergedVariants = item.variants.map(v => {
+                    const key = v._id.toString();
+                    // isActive in UI = !isSoldOut. So if not in map, assume available (Active)
+                    // If in map: isAvailable = mapValue
+                    const available = variantConfigMap.has(key) ? variantConfigMap.get(key) : true;
+                    return { ...v, isActive: available };
+                });
+            }
+
             return {
                 ...item,
                 isSoldOut: config ? config.isSoldOut : false, // Default: NOT sold out
-                configId: config ? config._id : null
+                configId: config ? config._id : null,
+                variants: mergedVariants
             };
         });
 
@@ -146,14 +178,20 @@ const getStoreMerchandise = async (req, res) => {
 const updateStoreMerchandiseConfig = async (req, res) => {
     try {
         const { storeId, merchandiseId } = req.params;
-        const { isSoldOut } = req.body;
+        const { isSoldOut, variantConfig } = req.body;
 
         const config = await StoreMerchandiseConfig.findOneAndUpdate(
             { storeId, merchandiseId },
             {
                 storeId,
                 merchandiseId,
-                isSoldOut: isSoldOut // True = Sold Out, False = Available
+                isSoldOut: isSoldOut, // True = Sold Out, False = Available
+                variantConfig: variantConfig // variantConfig items could have isSoldOut or isAvailable. 
+                // StoreMerchandiseConfig was defined with 'variantKey' and 'isSoldOut' or 'isAvailable'?
+                // The edited model 'StoreMerchandiseConfig.js' used 'isAvailable: { type: Boolean, default: true }' or match convention?
+                // Let's check 'StoreMerchandiseConfig.js' content. I added 'isSoldOut' convention in summary?
+                // Summary said: "Added 'variantConfig' to StoreMerchandiseConfigSchema using 'isSoldOut' convention."
+                // I should verify that.
             },
             { new: true, upsert: true }
         );

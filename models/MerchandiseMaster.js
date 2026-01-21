@@ -20,6 +20,27 @@ const MerchandiseMasterSchema = new mongoose.Schema(
             ref: "CategoryMaster",
             required: true,
         },
+        subCategoryIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "SubCategoryMaster"
+        }],
+        variants: [{
+            combination: {
+                type: Map,
+                of: String
+            },
+            price: {
+                type: Number,
+                required: true
+            },
+            itemCode: {
+                type: String
+            },
+            isActive: {
+                type: Boolean,
+                default: true
+            }
+        }],
         hsnCode: {
             type: String,
             default: "",

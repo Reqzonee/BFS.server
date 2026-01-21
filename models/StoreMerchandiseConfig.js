@@ -15,7 +15,11 @@ const StoreMerchandiseConfigSchema = new mongoose.Schema(
         isSoldOut: {
             type: Boolean,
             default: false, // Default is NOT sold out (i.e., available)
-        }
+        },
+        variantConfig: [{
+            variantKey: { type: String },
+            isSoldOut: { type: Boolean, default: false }
+        }],
     },
     { timestamps: true }
 );
