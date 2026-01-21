@@ -5,6 +5,8 @@ const ComboMaster = require("../../models/ComboMaster.js");
 const StoreComboConfig = require("../../models/StoreComboConfig.js");
 const StoreAddOnConfig = require("../../models/StoreAddOnConfig.js");
 const AddOnMaster = require("../../models/AddOnMaster.js");
+const StoreCategoryConfig = require("../../models/StoreCategoryConfig.js");
+const CategoryMaster = require("../../models/CategoryMaster.js");
 
 // Get Store Menu (Merged View: Master + Config)
 const getStoreMenu = async (req, res) => {
@@ -231,10 +233,78 @@ const updateStoreAddOnConfig = async (req, res) => {
     }
 };
 
+// Get Store Categories (Merged View)
+const getStoreCategories = async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const store = await StoreMaster.findOne({ _id: storeId });
+        if (!store) {
+            return res.status(404).json({ isOk: false, message: "Store not found" });
+        }
+
+        // Fetch Categories (Filter by type="FOOD" to exclude Merchandise categories)
+        const masterCategories = await CategoryMaster.find({ isActive: true, type: "FOOD" }).lean();
+        const storeConfigs = await StoreCategoryConfig.find({ storeId }).lean();
+
+        const configMap = new Map();
+        storeConfigs.forEach(config => {
+            configMap.set(config.categoryId.toString(), config);
+        });
+
+        const categories = masterCategories.map(cat => {
+            const config = configMap.get(cat._id.toString());
+            return {
+                ...cat,
+                isActive: config ? config.isAvailable : true, // Map isAvailable -> isActive for frontend compatibility or keep isAvailable
+                isAvailable: config ? config.isAvailable : true,
+                configId: config ? config._id : null
+            };
+        });
+
+        res.status(200).json({
+            isOk: true,
+            data: categories,
+            message: "Store categories fetched successfully",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal server error" });
+    }
+};
+
+// Update Store Category Config
+const updateStoreCategoryConfig = async (req, res) => {
+    try {
+        const { storeId, categoryId } = req.params;
+        const { isAvailable } = req.body; // Category config only has availability currently
+
+        const config = await StoreCategoryConfig.findOneAndUpdate(
+            { storeId, categoryId },
+            {
+                storeId,
+                categoryId,
+                isAvailable
+            },
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            isOk: true,
+            data: config,
+            message: "Store category availability updated successfully"
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal server error" });
+    }
+};
+
 module.exports = {
     getStoreMenu,
     updateStoreItemConfig,
     updateStoreComboConfig,
     getStoreAddOns,
-    updateStoreAddOnConfig
+    updateStoreAddOnConfig,
+    getStoreCategories,
+    updateStoreCategoryConfig
 };

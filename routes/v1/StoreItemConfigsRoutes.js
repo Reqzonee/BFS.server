@@ -3,7 +3,9 @@ const { getStoreMenu,
     updateStoreItemConfig,
     updateStoreComboConfig,
     getStoreAddOns,
-    updateStoreAddOnConfig
+    updateStoreAddOnConfig,
+    getStoreCategories,
+    updateStoreCategoryConfig
 } = require("../../controllers/v1/StoreItemConfigController.js");
 const { authMiddleware } = require("../../middlewares/authMiddleware.js");
 
@@ -30,5 +32,13 @@ router.put("/store-configs/:storeId/combo/:comboId", authMiddleware(["ADMIN", "E
 // Update specific add-on config for a store
 // /store-configs/:storeId/addon/:addOnId
 router.put("/store-configs/:storeId/addon/:addOnId", authMiddleware(["ADMIN", "EMPLOYEE"]), updateStoreAddOnConfig);
+
+// Get Store Categories
+// /store-configs/:storeId/categories
+router.get("/store-configs/:storeId/categories", authMiddleware(["ADMIN", "EMPLOYEE"]), getStoreCategories);
+
+// Update specific category config for a store
+// /store-configs/:storeId/category/:categoryId
+router.put("/store-configs/:storeId/category/:categoryId", authMiddleware(["ADMIN", "EMPLOYEE"]), updateStoreCategoryConfig);
 
 module.exports = router;
