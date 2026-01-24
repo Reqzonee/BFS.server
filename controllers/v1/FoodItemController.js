@@ -54,6 +54,14 @@ const createFoodItem = async (req, res) => {
             });
         }
 
+        if (req.body.variants && typeof req.body.variants === 'string') {
+            try {
+                req.body.variants = JSON.parse(req.body.variants);
+            } catch (e) {
+                req.body.variants = [];
+            }
+        }
+
         const newItem = new FoodItemMaster({
             ...req.body,
             companyId: req.user.companyId || req.user.id,
@@ -102,6 +110,13 @@ const updateFoodItem = async (req, res) => {
             // Admin: Handle Image
             if (req.file) {
                 updateData.imageUrl = req.file.path.replace(/\\/g, "/");
+            }
+            if (updateData.variants && typeof updateData.variants === 'string') {
+                try {
+                    updateData.variants = JSON.parse(updateData.variants);
+                } catch (e) {
+                    updateData.variants = [];
+                }
             }
         }
 

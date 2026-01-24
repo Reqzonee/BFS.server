@@ -32,12 +32,28 @@ const getStoreMenu = async (req, res) => {
 
         const items = masterItems.map(item => {
             const config = configMap.get(item._id.toString());
+
+            let mergedVariants = item.variants || [];
+            if (config && config.variantConfig && item.variants) {
+                const variantConfigMap = new Map();
+                config.variantConfig.forEach(vc => variantConfigMap.set(vc.variantKey, vc.isAvailable));
+
+                mergedVariants = item.variants.map(v => {
+                    const key = v._id.toString();
+                    // For store view, isActive reflects availability in store
+                    const available = variantConfigMap.has(key) ? variantConfigMap.get(key) : true;
+                    // Use lean() so we can modify properties directly
+                    return { ...v, isActive: available };
+                });
+            }
+
             return {
                 ...item,
                 isAvailable: config ? config.isAvailable : true,
                 price: (config && config.customPrice) ? config.customPrice : item.basePrice,
                 isCustomPrice: (config && config.customPrice) ? true : false,
-                configId: config ? config._id : null
+                configId: config ? config._id : null,
+                variants: mergedVariants
             };
         });
 
@@ -90,7 +106,7 @@ const getStoreMenu = async (req, res) => {
 const updateStoreItemConfig = async (req, res) => {
     try {
         const { storeId, itemId } = req.params;
-        let { isAvailable, customPrice } = req.body;
+        let { isAvailable, customPrice, variantConfig } = req.body;
 
         // Security: Non-Admins cannot change price
         if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
@@ -103,7 +119,8 @@ const updateStoreItemConfig = async (req, res) => {
                 storeId,
                 itemId,
                 isAvailable,
-                customPrice: customPrice || null
+                customPrice: customPrice || null,
+                variantConfig: variantConfig || []
             },
             { new: true, upsert: true, runValidators: true }
         );

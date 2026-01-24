@@ -20,6 +20,10 @@ const StoreItemConfigSchema = new mongoose.Schema(
             type: Number,
             default: null, // If null, use basePrice from Master
         },
+        variantConfig: [{
+            variantKey: { type: String },
+            isAvailable: { type: Boolean, default: true }
+        }],
     },
     { timestamps: true }
 );

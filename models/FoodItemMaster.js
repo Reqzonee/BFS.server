@@ -29,6 +29,31 @@ const FoodItemMasterSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "AddOnGroupMaster"
         }],
+        subCategoryIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "SubCategoryMaster"
+        }],
+        variants: [{
+            combination: {
+                type: Map,
+                of: String
+            },
+            price: {
+                type: Number,
+                required: true
+            },
+            itemCode: {
+                type: String
+            },
+            isVeg: {
+                type: Boolean,
+                default: true
+            },
+            isActive: {
+                type: Boolean,
+                default: true
+            }
+        }],
         gstPercent: {
             type: Number,
             default: 0
