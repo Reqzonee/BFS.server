@@ -16,13 +16,18 @@ const StoreItemConfigSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isSoldOut: {
+            type: Boolean,
+            default: false,
+        },
         customPrice: {
             type: Number,
             default: null, // If null, use basePrice from Master
         },
         variantConfig: [{
             variantKey: { type: String },
-            isAvailable: { type: Boolean, default: true }
+            isAvailable: { type: Boolean, default: true },
+            isSoldOut: { type: Boolean, default: false }
         }],
     },
     { timestamps: true }

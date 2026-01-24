@@ -50,6 +50,7 @@ const getStoreMenu = async (req, res) => {
             return {
                 ...item,
                 isAvailable: config ? config.isAvailable : true,
+                isSoldOut: config ? config.isSoldOut : false,
                 price: (config && config.customPrice) ? config.customPrice : item.basePrice,
                 isCustomPrice: (config && config.customPrice) ? true : false,
                 configId: config ? config._id : null,
@@ -73,11 +74,37 @@ const getStoreMenu = async (req, res) => {
 
         const combos = masterCombos.map(combo => {
             const config = comboConfigMap.get(combo._id.toString());
+            let comboIsAvailable = config ? config.isAvailable : true;
+
+            // Check if all food items in combo are available
+            if (comboIsAvailable && combo.foodItems && combo.foodItems.length > 0) {
+                for (const comboItem of combo.foodItems) {
+                    const foodId = comboItem.foodId?._id || comboItem.foodId;
+                    if (!foodId) continue;
+
+                    const foodItemConfig = configMap.get(foodId.toString());
+                    
+                    // If any food item in combo is unavailable or sold out, combo becomes unavailable
+                    if (foodItemConfig && (!foodItemConfig.isAvailable || foodItemConfig.isSoldOut)) {
+                        comboIsAvailable = false;
+                        break;
+                    }
+
+                    // Check if the food item exists and is active in master
+                    const foodItemMaster = masterItems.find(item => item._id.toString() === foodId.toString());
+                    if (!foodItemMaster || !foodItemMaster.isActive) {
+                        comboIsAvailable = false;
+                        break;
+                    }
+                }
+            }
+
             return {
                 ...combo,
-                isAvailable: config ? config.isAvailable : true,
-                price: (config && config.customPrice) ? config.customPrice : combo.price, // Combo matches basePrice logic but field is 'price'
-                originalPrice: combo.price, // Keep original for reference
+                isAvailable: comboIsAvailable,
+                isSoldOut: config ? config.isSoldOut : false,
+                price: (config && config.customPrice) ? config.customPrice : combo.price,
+                originalPrice: combo.price,
                 isCustomPrice: (config && config.customPrice) ? true : false,
                 configId: config ? config._id : null
             };
@@ -106,7 +133,7 @@ const getStoreMenu = async (req, res) => {
 const updateStoreItemConfig = async (req, res) => {
     try {
         const { storeId, itemId } = req.params;
-        let { isAvailable, customPrice, variantConfig } = req.body;
+        let { isAvailable, isSoldOut, customPrice, variantConfig } = req.body;
 
         // Security: Non-Admins cannot change price
         if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
@@ -119,6 +146,7 @@ const updateStoreItemConfig = async (req, res) => {
                 storeId,
                 itemId,
                 isAvailable,
+                isSoldOut: isSoldOut !== undefined ? isSoldOut : false,
                 customPrice: customPrice || null,
                 variantConfig: variantConfig || []
             },
@@ -144,7 +172,7 @@ const updateStoreItemConfig = async (req, res) => {
 const updateStoreComboConfig = async (req, res) => {
     try {
         const { storeId, comboId } = req.params;
-        let { isAvailable, customPrice } = req.body;
+        let { isAvailable, isSoldOut, customPrice } = req.body;
 
         // Security: Non-Admins cannot change price
         if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
@@ -157,6 +185,7 @@ const updateStoreComboConfig = async (req, res) => {
                 storeId,
                 comboId,
                 isAvailable,
+                isSoldOut: isSoldOut !== undefined ? isSoldOut : false,
                 customPrice: customPrice || null
             },
             { new: true, upsert: true, runValidators: true }
@@ -222,7 +251,7 @@ const getStoreAddOns = async (req, res) => {
 const updateStoreAddOnConfig = async (req, res) => {
     try {
         const { storeId, addOnId } = req.params;
-        let { isAvailable, customPrice } = req.body;
+        let { isAvailable, isSoldOut, customPrice } = req.body;
 
         if (!["ADMIN", "SUPERADMIN"].includes(req.user.role)) {
             customPrice = undefined;
@@ -234,6 +263,7 @@ const updateStoreAddOnConfig = async (req, res) => {
                 storeId,
                 addOnId,
                 isAvailable,
+                isSoldOut: isSoldOut !== undefined ? isSoldOut : false,
                 customPrice: customPrice || null
             },
             { new: true, upsert: true, runValidators: true }

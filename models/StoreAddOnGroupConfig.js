@@ -16,6 +16,10 @@ const StoreAddOnGroupConfigSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isSoldOut: {
+            type: Boolean,
+            default: false,
+        },
         customMinSelection: {
             type: Number,
             default: null, // If null, use minSelection from AddOnGroupMaster
