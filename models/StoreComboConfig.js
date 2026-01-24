@@ -16,6 +16,10 @@ const StoreComboConfigSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isSoldOut: {
+            type: Boolean,
+            default: false,
+        },
         customPrice: {
             type: Number,
             default: null, // If null, use basePrice from Master

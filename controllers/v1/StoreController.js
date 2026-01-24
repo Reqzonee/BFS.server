@@ -13,6 +13,13 @@ const createStore = async (req, res) => {
             gstNumber,
             contactNumber,
             isActive,
+            latitude,
+            longitude,
+            deliveryRadiusKm,
+            minOrderAmount,
+            isAcceptingOrders,
+            openingTime,
+            closingTime,
         } = req.body;
 
         const existingStore = await StoreMasterModels.findOne({
@@ -26,7 +33,7 @@ const createStore = async (req, res) => {
             });
         }
 
-        const store = new StoreMasterModels({
+        const storeData = {
             storeName,
             storeCode,
             companyId,
@@ -37,7 +44,36 @@ const createStore = async (req, res) => {
             gstNumber,
             contactNumber,
             isActive,
-        });
+        };
+
+        if (latitude !== undefined && longitude !== undefined) {
+            storeData.location = {
+                type: "Point",
+                coordinates: [parseFloat(longitude), parseFloat(latitude)],
+            };
+        }
+
+        if (deliveryRadiusKm !== undefined) {
+            storeData.deliveryRadiusKm = deliveryRadiusKm;
+        }
+
+        if (minOrderAmount !== undefined) {
+            storeData.minOrderAmount = minOrderAmount;
+        }
+
+        if (isAcceptingOrders !== undefined) {
+            storeData.isAcceptingOrders = isAcceptingOrders;
+        }
+
+        if (openingTime) {
+            storeData.openingTime = openingTime;
+        }
+
+        if (closingTime) {
+            storeData.closingTime = closingTime;
+        }
+
+        const store = new StoreMasterModels(storeData);
 
         await store.save();
 
@@ -71,6 +107,13 @@ const updateStore = async (req, res) => {
             gstNumber,
             contactNumber,
             isActive,
+            latitude,
+            longitude,
+            deliveryRadiusKm,
+            minOrderAmount,
+            isAcceptingOrders,
+            openingTime,
+            closingTime,
         } = req.body;
 
         const store = await StoreMasterModels.findById(storeId);
@@ -96,16 +139,43 @@ const updateStore = async (req, res) => {
             }
         }
 
-        store.storeName = storeName;
-        store.storeCode = storeCode;
-        store.companyId = companyId;
-        store.address = address;
-        store.countryId = countryId;
-        store.stateId = stateId;
-        store.cityId = cityId;
-        store.gstNumber = gstNumber;
-        store.contactNumber = contactNumber;
-        store.isActive = isActive;
+        if (storeName !== undefined) store.storeName = storeName;
+        if (storeCode !== undefined) store.storeCode = storeCode;
+        if (companyId !== undefined) store.companyId = companyId;
+        if (address !== undefined) store.address = address;
+        if (countryId !== undefined) store.countryId = countryId;
+        if (stateId !== undefined) store.stateId = stateId;
+        if (cityId !== undefined) store.cityId = cityId;
+        if (gstNumber !== undefined) store.gstNumber = gstNumber;
+        if (contactNumber !== undefined) store.contactNumber = contactNumber;
+        if (isActive !== undefined) store.isActive = isActive;
+
+        if (latitude !== undefined && longitude !== undefined) {
+            store.location = {
+                type: "Point",
+                coordinates: [parseFloat(longitude), parseFloat(latitude)],
+            };
+        }
+
+        if (deliveryRadiusKm !== undefined) {
+            store.deliveryRadiusKm = deliveryRadiusKm;
+        }
+
+        if (minOrderAmount !== undefined) {
+            store.minOrderAmount = minOrderAmount;
+        }
+
+        if (isAcceptingOrders !== undefined) {
+            store.isAcceptingOrders = isAcceptingOrders;
+        }
+
+        if (openingTime !== undefined) {
+            store.openingTime = openingTime;
+        }
+
+        if (closingTime !== undefined) {
+            store.closingTime = closingTime;
+        }
 
         await store.save();
 
