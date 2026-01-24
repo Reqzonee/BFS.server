@@ -126,6 +126,7 @@ const getStoreMenu = async (req, res) => {
           gstPercent: item.gstPercent,
           imageUrl: item.imageUrl,
           isVeg: item.isVeg,
+          isAvailable: itemConfig.isAvailable,
           isSoldOut: itemConfig.isSoldOut || false,
           subCategories,
           availableCombinations,
@@ -248,6 +249,8 @@ const getMerchandise = async (req, res) => {
           basePrice: item.basePrice,
           gstPercent: item.gstPercent,
           imageUrls: item.imageUrls,
+          isAvailable: itemConfig ? itemConfig.isAvailable : true,
+          isSoldOut: itemConfig ? itemConfig.isSoldOut : false,
           subCategories,
           availableCombinations,
         });
@@ -347,6 +350,8 @@ const getCombos = async (req, res) => {
         price: comboPrice,
         imageUrl: combo.imageUrl,
         includedItems: combo.foodItems || [],
+        isAvailable: comboConfig.isAvailable,
+        isSoldOut: comboConfig.isSoldOut,
         validFrom: combo.validFrom,
         validTo: combo.validTo,
       });
