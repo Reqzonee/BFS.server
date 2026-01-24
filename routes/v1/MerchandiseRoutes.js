@@ -16,6 +16,7 @@ router.get("/merchandise", authMiddleware(["ADMIN", "SUPERADMIN", "STORE_ADMIN",
 router.post("/merchandise", authMiddleware(["ADMIN", "SUPERADMIN"]), upload, controller.createMerchandise);
 router.put("/merchandise/:id", authMiddleware(["ADMIN", "SUPERADMIN"]), upload, controller.updateMerchandise);
 router.delete("/merchandise/:id", authMiddleware(["ADMIN", "SUPERADMIN"]), controller.deleteMerchandise);
+router.post("/merchandise/bulk-create", authMiddleware(["ADMIN", "SUPERADMIN"]), controller.bulkCreateMerchandise);
 
 // Store-Specific Routes
 router.get("/merchandise/store/:storeId", authMiddleware(["ADMIN", "SUPERADMIN", "STORE_ADMIN", "EMPLOYEE"]), controller.getStoreMerchandise);

@@ -85,7 +85,7 @@ const skipIfHealthCheck = (req) => {
  */
 const generalRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
+    max: 1000, // 1000 requests per window
     message: 'Too many requests from this IP, please try again after 15 minutes',
     standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
     legacyHeaders: false, // Disable `X-RateLimit-*` headers (use standardHeaders instead)
@@ -101,7 +101,7 @@ const generalRateLimiter = rateLimit({
  */
 const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Only 5 login attempts per window
+    max: 100, // Only 100 login attempts per window
     message: 'Too many login attempts from this IP, please try again after 15 minutes',
     standardHeaders: true,
     legacyHeaders: false,
