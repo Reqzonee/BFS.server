@@ -1,4 +1,7 @@
 const express = require("express");
+const http = require("http");
+const { initSocket } = require("./utils/socket.js");
+const { initOrderWatcher } = require("./services/orderWatcher.js");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
@@ -115,6 +118,9 @@ mongoose
   .then(() => {
     console.log("✅ DB connected");
     databasestatus = "Connected";
+
+    // Initialize DB watchers after connection
+    initOrderWatcher();
   })
   .catch((err) => {
     console.error("❌ DB Connection Error =>", err);
@@ -169,10 +175,18 @@ app.get("/api", (req, res) => {
   });
 });
 
-app.use("/", express.static(path.join(__dirname, "/out/admin")));
+
+
+app.use("/admin", express.static(path.join(__dirname, "/out/admin")));
+
+app.get("/admin/*", async (req, res) => {
+  res.sendFile(path.join(__dirname, "/out/admin", "index.html"));
+});
+
+app.use("/", express.static(path.join(__dirname, "/out/Front")));
 
 app.get("/*", async (req, res) => {
-  res.sendFile(path.join(__dirname, "/out/admin", "index.html"));
+  res.sendFile(path.join(__dirname, "/out/Front", "index.html"));
 });
 
 // ============ ERROR HANDLING ============
@@ -229,8 +243,15 @@ app.use(async (err, req, res, _next) => {
 
 const port = process.env.PORT || 8000;
 
-app.listen(port, () => {
+// Create HTTP Server for Socket.io integration
+const server = http.createServer(app);
+
+// Initialize Socket.io
+initSocket(server);
+
+server.listen(port, () => {
   console.log(`✅ Server is running on port ${port}`);
   console.log(`🔒 Security middleware enabled: Helmet, Rate Limiting, Input Validation, CSRF Protection`);
+  console.log(`✅ Socket.io interface initialized on the same port`);
   console.log(`✅ db ${process.env.DATABASE}`);
 });

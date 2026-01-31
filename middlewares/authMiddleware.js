@@ -25,16 +25,23 @@ const authMiddleware = (roles) => {
     }
 
     let verified;
+    let fallbackSecret = process.env.JWT_SECRET_KEY; // Backward compatibility fallback
 
     for (const role of roles) {
       try {
-        verified = jwt.verify(
-          token,
-          process.env[`${role.toUpperCase()}_JWT_SECRET_KEY`],
-        );
+        const secretKey = process.env[`${role.toUpperCase()}_JWT_SECRET_KEY`] || fallbackSecret;
+        if (!secretKey) continue;
 
-        if (verified) break;
-      } catch {
+        verified = jwt.verify(token, secretKey);
+        if (verified) {
+          console.log(`🔐 Auth successful for role: ${role} (User ID: ${verified.id})`);
+          break;
+        }
+      } catch (err) {
+        // Detailed log for debugging, but hidden in production
+        if (process.env.NODE_ENV !== 'production') {
+          // console.log(`🔍 Verification failed for role ${role}: ${err.message}`);
+        }
         continue;
       }
     }
@@ -51,7 +58,8 @@ const authMiddleware = (roles) => {
     req.user = {
       id: verified.id,
       role: verified.role,
-      companyId: verified.companyId
+      companyId: verified.companyId,
+      storeId: verified.storeId
     };
 
     next();

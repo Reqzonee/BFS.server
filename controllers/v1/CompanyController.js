@@ -196,7 +196,8 @@ const loginCompany = async (req, res) => {
       userId = employee._id;
       role = "EMPLOYEE";
       const companyId = employee.storeId ? employee.storeId.companyId : null;
-      token = await generateToken(employee._id, "EMPLOYEE", companyId);
+      const employeeStoreId = employee.storeId ? employee.storeId._id || employee.storeId : null;
+      token = await generateToken(employee._id, "EMPLOYEE", companyId, employeeStoreId);
     }
 
     if (!user) {

@@ -155,6 +155,14 @@ const orderSchema = new Schema(
         type: Number,
         default: 0,
       },
+      giftCardRedeemedAmount: {
+        type: Number,
+        default: 0,
+      },
+      loyaltyPointsRedeemed: {
+        type: Number,
+        default: 0,
+      },
       grandTotal: {
         type: Number,
         required: true,

@@ -104,8 +104,7 @@ const emailValidator = body('email')
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email address')
-    .isLength({ max: MAX_LENGTHS.EMAIL }).withMessage(`Email must not exceed ${MAX_LENGTHS.EMAIL} characters`)
-    .normalizeEmail();
+    .isLength({ max: MAX_LENGTHS.EMAIL }).withMessage(`Email must not exceed ${MAX_LENGTHS.EMAIL} characters`);
 
 /**
  * Password validation chain (for login - less strict)

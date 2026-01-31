@@ -475,7 +475,8 @@ const loginEmployee = async (req, res) => {
     await authService.recordSuccessfulLogin(employee._id, email);
 
     const companyId = employee.storeId ? employee.storeId.companyId : null;
-    const token = await generateToken(employee._id, "EMPLOYEE", companyId);
+    const employeeStoreId = employee.storeId ? employee.storeId._id || employee.storeId : null;
+    const token = await generateToken(employee._id, "EMPLOYEE", companyId, employeeStoreId);
 
     return res.status(200).json({
       isOk: true,

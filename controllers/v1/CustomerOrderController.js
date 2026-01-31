@@ -9,6 +9,7 @@ const StoreMerchandiseConfig = require("../../models/StoreMerchandiseConfig");
 const { generateOrderNumber } = require("../../utils/orderNumberGenerator");
 const { canCancelOrder, isAddressServiceable } = require("../../utils/orderValidation");
 const { createTransaction } = require("../../utils/transactionHelper");
+const { emitToRoom } = require("../../utils/socket");
 
 /**
  * Place order from cart
@@ -19,7 +20,7 @@ exports.placeOrder = async (req, res) => {
     console.log("=== Place Order Debug ===");
     console.log("req.customer:", req.customer);
     console.log("Headers:", req.headers.authorization);
-    
+
     if (!req.customer || !req.customer.id) {
       return res.status(401).json({
         success: false,
@@ -28,7 +29,7 @@ exports.placeOrder = async (req, res) => {
         status: 401,
       });
     }
-    
+
     const customerId = req.customer.id;
     const { orderType, deliveryAddressId, paymentMethod, specialInstructions } = req.body;
 
@@ -285,17 +286,17 @@ exports.placeOrder = async (req, res) => {
       orderType,
       deliveryAddress: deliveryAddress
         ? {
-            addressType: deliveryAddress.addressType,
-            houseNumber: deliveryAddress.houseNumber,
-            street: deliveryAddress.street,
-            area: deliveryAddress.area,
-            landmark: deliveryAddress.landmark,
-            city: deliveryAddress.city,
-            state: deliveryAddress.state,
-            country: deliveryAddress.country,
-            pincode: deliveryAddress.pincode,
-            location: deliveryAddress.location,
-          }
+          addressType: deliveryAddress.addressType,
+          houseNumber: deliveryAddress.houseNumber,
+          street: deliveryAddress.street,
+          area: deliveryAddress.area,
+          landmark: deliveryAddress.landmark,
+          city: deliveryAddress.city,
+          state: deliveryAddress.state,
+          country: deliveryAddress.country,
+          pincode: deliveryAddress.pincode,
+          location: deliveryAddress.location,
+        }
         : undefined,
       items: orderItems,
       pricing: {
@@ -347,6 +348,20 @@ exports.placeOrder = async (req, res) => {
     // Step 11: Clear cart
     cart.items = [];
     await cart.save();
+
+    // Step 11.5: Emit real-time notification to store
+    emitToRoom(`store:${order.storeId}`, "new_order", {
+      orderNumber: order.orderNumber,
+      storeId: order.storeId,
+      status: order.status,
+      pricing: { grandTotal: order.pricing.grandTotal },
+      customerDetails: {
+        fullName: order.customerDetails.fullName,
+        mobileNumber: order.customerDetails.mobileNumber
+      },
+      orderType: order.orderType,
+      placedAt: order.placedAt,
+    });
 
     // Step 12: Calculate cancellation deadline
     const cancelDeadline = new Date(order.placedAt.getTime() + 30000); // 30 seconds

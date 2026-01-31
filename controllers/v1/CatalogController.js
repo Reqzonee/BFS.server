@@ -146,6 +146,7 @@ const getStoreMenu = async (req, res) => {
       }
     }
 
+    res.set("Cache-Control", "public, max-age=120"); // 2 minutes browser cache
     return res.status(200).json({
       success: true,
       message: "Food menu fetched successfully",
@@ -268,6 +269,7 @@ const getMerchandise = async (req, res) => {
       }
     }
 
+    res.set("Cache-Control", "public, max-age=120");
     return res.status(200).json({
       success: true,
       message: "Merchandise fetched successfully",
@@ -357,6 +359,7 @@ const getCombos = async (req, res) => {
       });
     }
 
+    res.set("Cache-Control", "public, max-age=120");
     return res.status(200).json({
       success: true,
       message: "Combos fetched successfully",
