@@ -1,0 +1,61 @@
+name: Deploy Node.js Backend
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Deploy files via rsync
+        run: |
+          sudo apt-get update && sudo apt-get install -y rsync sshpass
+          
+          sshpass -p "${{ secrets.SSH_PASSWORD_TEST }}" rsync -avz \
+            --exclude='node_modules/' \
+            --exclude='.git/' \
+            --exclude='.next/' \
+            --exclude='.git*' \
+            --exclude='.github/' \
+            --exclude='build/' \
+            --exclude='package-lock.json' \
+            --exclude='yarn.lock' \
+            --no-perms \
+            --no-owner \
+            --no-group \
+            --omit-dir-times \
+            --chmod=D755,F644 \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }}:/home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
+      
+      - name: Install dependencies and restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST_TEST }}
+          username: ${{ secrets.SSH_USER_TEST }}
+          password: ${{ secrets.SSH_PASSWORD_TEST }}
+          script: |
+            cd /home/${{ secrets.FTP_USERNAME_TEST }}/public_html/
+            # Add Node to PATH
+            export PATH="/home/devnode/.nvm/versions/node/v20.20.0/bin:$PATH"
+            
+            # Fix permissions if needed
+            chmod +x /home/devnode/.nvm/versions/node/v20.20.0/bin/* 2>/dev/null || true
+            
+            # Verify
+            which node
+            node --version
+            
+            # Install dependencies
+            /home/devnode/.nvm/versions/node/v20.20.0/bin/npm install
+            
+             # Restart PM2 using process.json (this will use the app name)
+            pm2 stop process.json 
+            pm2 delete process.json
+            pm2 start process.json
+            pm2 save
