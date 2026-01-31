@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
 
-const generateToken = (_id, role, companyId = null) => {
+const generateToken = (_id, role, companyId = null, storeId = null) => {
   const payload = { id: _id, role: role };
   if (companyId) payload.companyId = companyId;
+  if (storeId) payload.storeId = storeId;
 
   return jwt.sign(
     payload,

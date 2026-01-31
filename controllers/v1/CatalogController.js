@@ -126,6 +126,7 @@ const getStoreMenu = async (req, res) => {
           gstPercent: item.gstPercent,
           imageUrl: item.imageUrl,
           isVeg: item.isVeg,
+          isAvailable: itemConfig.isAvailable,
           isSoldOut: itemConfig.isSoldOut || false,
           subCategories,
           availableCombinations,
@@ -145,6 +146,7 @@ const getStoreMenu = async (req, res) => {
       }
     }
 
+    res.set("Cache-Control", "public, max-age=120"); // 2 minutes browser cache
     return res.status(200).json({
       success: true,
       message: "Food menu fetched successfully",
@@ -248,6 +250,8 @@ const getMerchandise = async (req, res) => {
           basePrice: item.basePrice,
           gstPercent: item.gstPercent,
           imageUrls: item.imageUrls,
+          isAvailable: itemConfig ? itemConfig.isAvailable : true,
+          isSoldOut: itemConfig ? itemConfig.isSoldOut : false,
           subCategories,
           availableCombinations,
         });
@@ -265,6 +269,7 @@ const getMerchandise = async (req, res) => {
       }
     }
 
+    res.set("Cache-Control", "public, max-age=120");
     return res.status(200).json({
       success: true,
       message: "Merchandise fetched successfully",
@@ -347,11 +352,14 @@ const getCombos = async (req, res) => {
         price: comboPrice,
         imageUrl: combo.imageUrl,
         includedItems: combo.foodItems || [],
+        isAvailable: comboConfig.isAvailable,
+        isSoldOut: comboConfig.isSoldOut,
         validFrom: combo.validFrom,
         validTo: combo.validTo,
       });
     }
 
+    res.set("Cache-Control", "public, max-age=120");
     return res.status(200).json({
       success: true,
       message: "Combos fetched successfully",
