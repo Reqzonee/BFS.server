@@ -13,7 +13,7 @@
   },
   "instances": 1,
   "cron_restart": "0 0 * * *",
-  "out_file": "/home/choco-7005/public_html/logs/out_file.html",
-  "error_file": "/home/choco-7005/public_html/logs/error_file.html",
+  "out_file": "/home/chocolateroom-7005/public_html/logs/out_file.html",
+  "error_file": "/home/chocolateroom-7005/public_html/logs/error_file.html",
   "name": "7005-chocolateroom.barodaweb.org"
 }
