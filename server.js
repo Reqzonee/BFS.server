@@ -177,15 +177,44 @@ app.get("/api", (req, res) => {
 
 
 
-app.use("/admin", express.static(path.join(__dirname, "/out/admin")));
+// ============ STATIC FILES & FRONTEND SERVING ============
+// Serve admin static files with strong cache control
+app.use("/admin", express.static(path.join(__dirname, "/out/admin"), {
+  maxAge: 0,
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
-app.get("/admin/*", async (req, res) => {
+// Serve front static files with strong cache control
+app.use(express.static(path.join(__dirname, "/out/Front"), {
+  maxAge: 0,
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    // Ensure correct MIME types
+    if (filepath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (filepath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+  }
+}));
+
+// Admin SPA fallback - only for HTML navigation (no file extensions)
+app.get("/admin/*", (req, res) => {
   res.sendFile(path.join(__dirname, "/out/admin", "index.html"));
 });
 
-app.use("/", express.static(path.join(__dirname, "/out/Front")));
-
-app.get("/*", async (req, res) => {
+// Front SPA fallback - only for HTML navigation (no file extensions, no API)
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "/out/Front", "index.html"));
 });
 
