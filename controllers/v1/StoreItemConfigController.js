@@ -30,8 +30,25 @@ const getStoreMenu = async (req, res) => {
             configMap.set(config.itemId.toString(), config);
         });
 
+        console.log(`\n=== STORE MENU DEBUG for storeId: ${storeId} ===`);
+        console.log(`Total master items: ${masterItems.length}`);
+        console.log(`Total store configs: ${storeConfigs.length}`);
+        
+        // Debug: Log all store configs
+        storeConfigs.forEach(config => {
+            console.log(`Config for itemId ${config.itemId}: isFavorite=${config.isFavorite}, isAvailable=${config.isAvailable}`);
+        });
+
         const items = masterItems.map(item => {
             const config = configMap.get(item._id.toString());
+            
+            // Debug: Log for each item
+            console.log(`\nItem: ${item.itemName} (${item._id})`);
+            console.log(`  - Master isFavorite: ${item.isFavorite}`);
+            console.log(`  - Has config: ${!!config}`);
+            if (config) {
+                console.log(`  - Config isFavorite: ${config.isFavorite}`);
+            }
 
             let mergedVariants = item.variants || [];
             if (config && config.variantConfig && item.variants) {
@@ -51,8 +68,11 @@ const getStoreMenu = async (req, res) => {
                 ...item,
                 isAvailable: config ? config.isAvailable : true,
                 isSoldOut: config ? config.isSoldOut : false,
+                isFavorite: config ? config.isFavorite : (item.isFavorite || false),
                 price: (config && config.customPrice) ? config.customPrice : item.basePrice,
+                parcelCharges: (config && config.customParcelCharges !== null) ? config.customParcelCharges : item.parcelCharges,
                 isCustomPrice: (config && config.customPrice) ? true : false,
+                isCustomParcelCharges: (config && config.customParcelCharges !== null) ? true : false,
                 configId: config ? config._id : null,
                 variants: mergedVariants
             };
@@ -308,6 +328,13 @@ const getStoreCategories = async (req, res) => {
             };
         });
 
+        console.log(`Fetched ${categories.length} categories for store ${storeId}`);
+        console.log("Categories with availability:");
+        categories.forEach(cat => {
+            console.log(`Category: ${cat.categoryName}, isAvailable: ${cat.isAvailable}`);
+        });
+        console.log("food items for store menu:");
+
         res.status(200).json({
             isOk: true,
             data: categories,
@@ -346,6 +373,55 @@ const updateStoreCategoryConfig = async (req, res) => {
     }
 };
 
+/**
+ * Toggle favorite status for a store-specific item
+ */
+const toggleStoreFavorite = async (req, res) => {
+    try {
+        const { storeId, itemId } = req.body;
+
+        if (!storeId || !itemId) {
+            return res.status(400).json({
+                isOk: false,
+                message: "Store ID and Item ID are required",
+                status: 400,
+            });
+        }
+
+        // Find or create store item config
+        let storeItemConfig = await StoreItemConfig.findOne({ storeId, itemId });
+
+        if (!storeItemConfig) {
+            // Create new config if doesn't exist
+            storeItemConfig = new StoreItemConfig({
+                storeId,
+                itemId,
+                isFavorite: true,
+                isAvailable: true,
+            });
+        } else {
+            // Toggle favorite status
+            storeItemConfig.isFavorite = !storeItemConfig.isFavorite;
+        }
+
+        await storeItemConfig.save();
+
+        return res.status(200).json({
+            isOk: true,
+            message: `Item ${storeItemConfig.isFavorite ? 'marked as' : 'removed from'} favorite`,
+            data: storeItemConfig,
+            status: 200,
+        });
+    } catch (error) {
+        console.error("Toggle Store Favorite Error:", error);
+        return res.status(500).json({
+            isOk: false,
+            message: error.message,
+            status: 500,
+        });
+    }
+};
+
 module.exports = {
     getStoreMenu,
     updateStoreItemConfig,
@@ -353,5 +429,6 @@ module.exports = {
     getStoreAddOns,
     updateStoreAddOnConfig,
     getStoreCategories,
-    updateStoreCategoryConfig
+    updateStoreCategoryConfig,
+    toggleStoreFavorite
 };

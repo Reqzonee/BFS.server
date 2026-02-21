@@ -20,9 +20,17 @@ const StoreItemConfigSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        isFavorite: {
+            type: Boolean,
+            default: false,
+        },
         customPrice: {
             type: Number,
             default: null, // If null, use basePrice from Master
+        },
+        customParcelCharges: {
+            type: Number,
+            default: null, // If null, use parcelCharges from Master
         },
         variantConfig: [{
             variantKey: { type: String },

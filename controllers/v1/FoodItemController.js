@@ -7,7 +7,25 @@ const { validationResult } = require("express-validator");
 const getAllFoodItems = async (req, res) => {
     try {
         const companyId = req.user.companyId || req.user.id;
-        const items = await FoodItemMaster.find({ companyId }).sort({ createdAt: -1 });
+        const { categoryId, isFavorite } = req.query;
+        
+        // Build filter object
+        const filter = { companyId };
+        
+        // Add category filter if provided
+        if (categoryId) {
+            filter.categoryId = categoryId;
+        }
+        
+        // Add favorite filter if provided
+        if (isFavorite !== undefined) {
+            filter.isFavorite = isFavorite === 'true';
+        }
+        
+        const items = await FoodItemMaster.find(filter)
+            .populate('categoryId')
+            .sort({ createdAt: -1 });
+            
         res.status(200).json({ isOk: true, data: items, message: "Food items fetched successfully" });
     } catch (error) {
         console.error(error);
@@ -260,6 +278,30 @@ const bulkCreateFoodItems = async (req, res) => {
     }
 };
 
+// Toggle favorite status
+const toggleFavorite = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const item = await FoodItemMaster.findById(id);
+        if (!item) {
+            return res.status(404).json({ isOk: false, message: "Food item not found" });
+        }
+
+        item.isFavorite = !item.isFavorite;
+        await item.save();
+
+        res.status(200).json({ 
+            isOk: true, 
+            data: { isFavorite: item.isFavorite },
+            message: `Item ${item.isFavorite ? 'added to' : 'removed from'} favorites` 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ isOk: false, message: "Internal server error" });
+    }
+};
+
 
 module.exports = {
     getAllFoodItems,
@@ -268,5 +310,6 @@ module.exports = {
     updateFoodItem,
     deleteFoodItem,
     searchFoodItems,
-    bulkCreateFoodItems
+    bulkCreateFoodItems,
+    toggleFavorite
 };

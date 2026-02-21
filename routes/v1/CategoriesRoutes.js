@@ -19,7 +19,7 @@ const upload = createSecureImageUpload({
 });
 router.post("/categories/bulk", authMiddleware(["ADMIN", "EMPLOYEE"]), bulkCreateCategories); // Bulk creation
 router.post("/categories", authMiddleware(["ADMIN", "EMPLOYEE"]), upload, createCategory);
-router.get("/categories", authMiddleware(["ADMIN", "EMPLOYEE"]), getAllCategories);
+router.get("/categories", authMiddleware(["ADMIN", "EMPLOYEE", "POS"]), getAllCategories);
 router.put("/categories/:id", authMiddleware(["ADMIN", "EMPLOYEE"]), upload, updateCategory);
 router.delete("/categories/:id", authMiddleware(["ADMIN", "EMPLOYEE"]), deleteCategory);
 

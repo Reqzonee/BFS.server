@@ -6,7 +6,7 @@ const { authMiddleware } = require("../../middlewares/authMiddleware");
 // Routes for Admin/Employee Order Management
 // We allow both ADMIN (Company Master) and EMPLOYEE to access these
 // authMiddleware takes an array of roles to check against
-const adminAuth = authMiddleware(["ADMIN", "EMPLOYEE"]);
+const adminAuth = authMiddleware(["ADMIN", "EMPLOYEE", "STORE_ADMIN", "storeadmin", "SUPERADMIN", "POS"]);
 
 /**
  * @route GET /api/v1/admin/orders

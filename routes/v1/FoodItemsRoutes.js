@@ -5,7 +5,8 @@ const { createFoodItem,
     updateFoodItem,
     deleteFoodItem,
     searchFoodItems,
-    bulkCreateFoodItems
+    bulkCreateFoodItems,
+    toggleFavorite
 } = require("../../controllers/v1/FoodItemController.js");
 const { authMiddleware } = require("../../middlewares/authMiddleware.js");
 
@@ -24,10 +25,11 @@ const upload = createSecureImageUpload({
 
 router.post("/food-items/bulk", authMiddleware(["ADMIN", "EMPLOYEE"]), bulkCreateFoodItems); // Bulk creation
 router.post("/food-items", authMiddleware(["ADMIN", "EMPLOYEE"]), upload, createFoodItem);
-router.get("/food-items", authMiddleware(["ADMIN", "EMPLOYEE"]), getAllFoodItems);
-router.post("/food-items/search", authMiddleware(["ADMIN", "EMPLOYEE"]), searchFoodItems); // Search endpoint
-router.get("/food-items/:id", authMiddleware(["ADMIN", "EMPLOYEE"]), getFoodItemById);
+router.get("/food-items", authMiddleware(["ADMIN", "EMPLOYEE", "POS"]), getAllFoodItems);
+router.post("/food-items/search", authMiddleware(["ADMIN", "EMPLOYEE", "POS"]), searchFoodItems); // Search endpoint
+router.get("/food-items/:id", authMiddleware(["ADMIN", "EMPLOYEE", "POS"]), getFoodItemById);
 router.put("/food-items/:id", authMiddleware(["ADMIN", "EMPLOYEE"]), upload, updateFoodItem);
 router.delete("/food-items/:id", authMiddleware(["ADMIN", "EMPLOYEE"]), deleteFoodItem);
+router.patch("/food-items/:id/favorite", authMiddleware(["ADMIN", "EMPLOYEE", "POS"]), toggleFavorite);
 
 module.exports = router;

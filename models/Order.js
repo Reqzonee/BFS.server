@@ -15,7 +15,7 @@ const orderSchema = new Schema(
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
+      required: false,
       index: true,
     },
     storeId: {
@@ -27,9 +27,9 @@ const orderSchema = new Schema(
 
     // Customer Details (Snapshot at order time)
     customerDetails: {
-      fullName: { type: String, required: true },
-      mobileNumber: { type: String, required: true },
-      email: String,
+      fullName: { type: String, required: false },
+      mobileNumber: { type: String, required: false },
+      email: { type: String, required: false },
     },
 
     // Store Details (Snapshot at order time)

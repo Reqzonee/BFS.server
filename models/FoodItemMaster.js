@@ -20,6 +20,10 @@ const FoodItemMasterSchema = new mongoose.Schema(
             required: true,
             default: 0,
         },
+        parcelCharges: {
+            type: Number,
+            default: 0,
+        },
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "CategoryMaster",
@@ -68,9 +72,17 @@ const FoodItemMasterSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        isFavorite: {
+            type: Boolean,
+            default:false,
+        },
         isActive: {
             type: Boolean,
             default: true,
+        },
+        ispackedfood: {
+            type: Boolean,
+            default: false,
         },
         companyId: {
             type: mongoose.Schema.Types.ObjectId,

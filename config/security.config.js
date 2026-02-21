@@ -54,7 +54,7 @@ const corsConfig = {
     allowedOrigins: [
         'http://localhost:3000',
         'http://localhost:3001',
-        'http://localhost:7005',
+        process.env.BASE_URL || 'http://localhost:7005',
         ...(process.env.ALLOWED_ORIGINS?.split(',') || []),
     ].filter(Boolean),
 
