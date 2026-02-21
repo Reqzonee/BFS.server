@@ -255,3 +255,6 @@ server.listen(port, () => {
   console.log(`✅ Socket.io interface initialized on the same port`);
   console.log(`✅ db ${process.env.DATABASE}`);
 });
+
+// Export for Vercel serverless deployment
+module.exports = app;
