@@ -1,5 +1,6 @@
 const Order = require("../../models/Order");
 const StoreMaster = require("../../models/StoreMaster");
+const KOTCounter = require("../../models/KOTCounter");
 const { generateOrderNumber } = require("../../utils/orderNumberGenerator");
 
 // Create a new order (POS/Admin)
@@ -14,6 +15,9 @@ exports.createOrder = async (req, res) => {
 
     // Generate order number
     const orderNumber = await generateOrderNumber();
+
+    // Generate daily KOT number
+    const kotNumber = await KOTCounter.getNextKOTNumber(storeId);
 
     // Get store details
     const store = await StoreMaster.findById(storeId).lean();
@@ -46,6 +50,7 @@ exports.createOrder = async (req, res) => {
     // Build order object
     const orderObj = {
       orderNumber,
+      kotNumber, // Daily KOT number (resets every day)
       storeId,
       storeDetails,
       items,

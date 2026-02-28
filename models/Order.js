@@ -11,6 +11,13 @@ const orderSchema = new Schema(
       index: true,
     },
 
+    // KOT Number (resets daily per store)
+    kotNumber: {
+      type: Number,
+      required: false,
+      index: true,
+    },
+
     // References
     customerId: {
       type: Schema.Types.ObjectId,
