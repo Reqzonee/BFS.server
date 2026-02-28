@@ -219,12 +219,12 @@ const loginValidation = [
         .optional()
         .trim()
         .isLength({ max: MAX_LENGTHS.IP_ADDRESS }).withMessage('Invalid IP address format'),
-    body('clientLatitude')
-        .optional()
-        .isFloat({ min: -90, max: 90 }).withMessage('clientLatitude must be between -90 and 90'),
-    body('clientLongitude')
-        .optional()
-        .isFloat({ min: -180, max: 180 }).withMessage('clientLongitude must be between -180 and 180'),
+    // body('clientLatitude')
+    //     .optional()
+    //     .isFloat({ min: -90, max: 90 }).withMessage('clientLatitude must be between -90 and 90'),
+    // body('clientLongitude')
+    //     .optional()
+    //     .isFloat({ min: -180, max: 180 }).withMessage('clientLongitude must be between -180 and 180'),
     handleValidationErrors,
 ];
 
