@@ -215,9 +215,12 @@ app.get("/admin/*", (req, res) => {
 
 // Front SPA fallback - only for HTML navigation (no file extensions, no API)
 app.get("*", (req, res) => {
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ message: "API route not found" });
+  }
+
   res.sendFile(path.join(__dirname, "/out/Front", "index.html"));
 });
-
 // ============ ERROR HANDLING ============
 // Use the secure error sanitizer (prevents information leakage)
 app.use(sanitizeErrors);
