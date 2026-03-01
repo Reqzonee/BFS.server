@@ -1,6 +1,6 @@
 const Order = require("../../models/Order");
 const FoodItemMaster = require("../../models/FoodItemMaster");
-const { generateBillPDF, generateKOTPDF } = require("../../utils/pdfGenerator");
+const { generateBillPDF, generateKOTPDF, generateCombinedPDF } = require("../../utils/pdfGenerator");
 
 
 // List all orders as bills for a given date
@@ -201,5 +201,41 @@ exports.printKOT = async (req, res) => {
   } catch (error) {
     console.error("Error printing KOT:", error);
     res.status(500).json({ isOk: false, message: "Failed to print KOT", error: error.message });
+  }
+};
+
+// Print combined Bill + KOT (generates one PDF with 2 pages)
+exports.printCombined = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId).lean();
+    if (!order) {
+      return res.status(404).json({ isOk: false, message: "Order not found" });
+    }
+
+    // Filter to only non-packed food items for KOT
+    const foodItemIds = order.items.map((item) => item.itemId);
+    const foodItems = await FoodItemMaster.find({ _id: { $in: foodItemIds } }).lean();
+    const packedFoodMap = {};
+    foodItems.forEach((item) => {
+      packedFoodMap[item._id.toString()] = item.ispackedfood;
+    });
+    const kotItems = order.items.filter(
+      (item) => !packedFoodMap[item.itemId?.toString()]
+    );
+
+    // Generate combined Bill + KOT PDF (2 pages in one file)
+    const pdfBuffer = await generateCombinedPDF(order, kotItems);
+
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Bill-KOT-${order.orderNumber}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF buffer
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error printing combined Bill+KOT:", error);
+    res.status(500).json({ isOk: false, message: "Failed to print combined Bill+KOT", error: error.message });
   }
 };

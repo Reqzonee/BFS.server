@@ -5,6 +5,7 @@ const {
   listKOTs,
   printBill,
   printKOT,
+  printCombined,
 } = require("../../controllers/v1/BillsKOTController");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 
@@ -38,5 +39,12 @@ router.get("/kot", posOrAdminAuth, listKOTs);
  * @access POS, Admin, Employee
  */
 router.get("/kot/:kotId/print", posOrAdminAuth, printKOT);
+
+/**
+ * @route GET /api/v1/combined/:orderId/print
+ * @desc Get combined Bill + KOT PDF (2 pages in one file)
+ * @access POS, Admin, Employee
+ */
+router.get("/combined/:orderId/print", posOrAdminAuth, printCombined);
 
 module.exports = router;
