@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createOrder } = require("../../controllers/v1/OrderController");
+const { createOrder, resyncKOTCounter } = require("../../controllers/v1/OrderController");
 const { generateKOT } = require("../../controllers/v1/KOTController");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 
@@ -18,5 +18,8 @@ router.post("/orders", posOrAdminAuth, createOrder);
 
 // Generate KOT for an order (only non-packed food)
 router.post("/orders/:orderId/kot", posOrAdminAuth, generateKOT);
+
+// Resync KOT counter (fix out-of-sync issue)
+router.post("/orders/resync-kot", posOrAdminAuth, resyncKOTCounter);
 
 module.exports = router;

@@ -47,8 +47,7 @@ const generateBillPDF = (order) => {
         yPos += 9;
       }
 
-      doc.text(`Tel: ${order.storeDetails?.contactNumber || 'N/A'}`, margin, yPos, { align: 'center', width: contentWidth });
-      yPos += 12;
+      yPos += 3;
 
       // Divider
       doc.fontSize(6)
@@ -64,14 +63,11 @@ const generateBillPDF = (order) => {
       // Bill Info
       doc.fontSize(7).font('Helvetica');
 
-      doc.text(`Bill#: BILL-${order.orderNumber}`, margin, yPos);
-      yPos += 9;
-
       const orderDate = new Date(order.placedAt);
       doc.text(`Date: ${orderDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, margin, yPos);
       yPos += 9;
 
-      doc.text(`Time: ${orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, margin, yPos);
+      doc.text(`Time: ${orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })}`, margin, yPos);
       yPos += 9;
 
       doc.text(`Type: ${order.orderType?.toUpperCase() || 'N/A'}`, margin, yPos);
@@ -181,14 +177,6 @@ const generateBillPDF = (order) => {
          .text(`₹${order.pricing?.grandTotal?.toFixed(2) || '0.00'}`, valueX - 10, yPos, { width: 60, align: 'right' });
       yPos += 14;
 
-      // Payment Info
-      doc.fontSize(7).font('Helvetica');
-      const paymentMethod = order.payment?.method?.toUpperCase() || 'CASH';
-      const paymentStatus = order.payment?.status?.toUpperCase() || 'PENDING';
-
-      doc.text(`Payment: ${paymentMethod} (${paymentStatus})`, margin, yPos);
-      yPos += 12;
-
       // Divider
       doc.fontSize(6)
          .text('================================', margin, yPos, { align: 'center', width: contentWidth });
@@ -266,7 +254,7 @@ const generateKOTPDF = (order, kotItems) => {
       const orderTime = new Date(order.placedAt).toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: false
       });
       doc.fontSize(9)
          .font('Helvetica')
@@ -372,7 +360,7 @@ const generateKOTPDF = (order, kotItems) => {
         month: 'short',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: false
       });
       doc.fontSize(6)
          .text(`Printed: ${printTime}`, 8, yPos, { align: 'center', width: contentWidth });
